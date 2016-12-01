@@ -1,5 +1,3 @@
-// +build windows
-
 package volumeapi
 
 import "unicode/utf16"
