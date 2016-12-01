@@ -1,3 +1,2 @@
-// Package ioctl provides constants and functions used in the definition of
-// Windows IO Control Codes.
+// Package ioctl defines I/O control codes for mass storage drivers.
 package ioctl

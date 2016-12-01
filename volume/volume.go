@@ -1,11 +1,15 @@
 package volume
 
-import "syscall"
+import (
+	"syscall"
+
+	"github.com/gentlemanautomaton/volmgmt/volumeapi"
+)
 
 // Volume represents a storage volume.
 type Volume interface {
-	Name() string
-	Paths() []string
+	Name() (string, error)
+	Paths() ([]string, error)
 	Handle() syscall.Handle
 	Close() error
 }
@@ -32,8 +36,10 @@ func New(path string) (Volume, error) {
 	if err != nil {
 		return nil, err
 	}
-	sharemode := uint32(syscall.FILE_SHARE_READ | syscall.FILE_SHARE_WRITE)
-	h, err := syscall.CreateFile(pathp, 0, sharemode, nil, syscall.OPEN_EXISTING, 0, 0)
+	//access := uint32(syscall.GENERIC_READ | syscall.GENERIC_WRITE)
+	access := uint32(syscall.GENERIC_READ)
+	mode := uint32(syscall.FILE_SHARE_READ | syscall.FILE_SHARE_WRITE)
+	h, err := syscall.CreateFile(pathp, access, mode, nil, syscall.OPEN_EXISTING, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -43,16 +49,20 @@ func New(path string) (Volume, error) {
 	}, nil
 }
 
-// Name returns the name of the volume.
-func (v *volume) Name() string {
-	// TODO: Call GetVolumeInformationByHandleW()
-	return ""
+// Name returns the label of the volume.
+func (v *volume) Name() (string, error) {
+	name, _, _, _, _, err := volumeapi.GetVolumeInformationByHandle(v.handle)
+	return name, err
 }
 
 // Paths returns all of the volume's mount points.
-func (v *volume) Paths() []string {
-	// TODO: Call GetVolumePathNamesForVolumeName()
-	return nil
+func (v *volume) Paths() ([]string, error) {
+	name, err := v.Name()
+	if err != nil {
+		return nil, err
+	}
+
+	return volumeapi.GetVolumePathNamesForVolumeName(name)
 }
 
 // Handle returns the system handle of the volume.
