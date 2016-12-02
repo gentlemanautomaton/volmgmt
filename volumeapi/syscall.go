@@ -81,11 +81,12 @@ func GetVolumePathNamesForVolumeName(volumeName string) (pathNames []string, err
 	//
 	// It is extremely unlikely, but possible, that the length could change
 	// between calls if a new path or mount is created.
+L:
 	for i := 0; i < 3; i++ {
 		length, err = getVolumePathNamesForVolumeName(vnp, buffer)
 		switch err {
 		case nil:
-			break
+			break L
 		case ErrMoreData:
 			buffer = make([]uint16, length)
 		default:
@@ -98,7 +99,7 @@ func GetVolumePathNamesForVolumeName(volumeName string) (pathNames []string, err
 	return
 }
 
-// getVolumePathNamesForVolumeName is a low-level API wrapper for the syscall.
+// getVolumePathNamesForVolumeName is a low level API wrapper for the syscall.
 func getVolumePathNamesForVolumeName(volumeName *uint16, buffer []uint16) (length int, err error) {
 	var p0 *uint16
 	if len(buffer) > 0 {
