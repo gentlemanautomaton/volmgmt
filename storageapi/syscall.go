@@ -90,9 +90,8 @@ func QueryDeviceDescriptor(handle syscall.Handle) (descriptor DeviceDescriptor, 
 }
 
 // QueryProperty is a low level API call that retrieves many different kinds
-// of storage device properties. It is generally prefable to use one of the
-// higher level functions like QueryDeviceDescriptor to retrieve a particular
-// kind of data.
+// of storage device properties. It is prefable to use one of the higher level
+// functions like QueryDeviceDescriptor to retrieve a particular kind of data.
 func QueryProperty(handle syscall.Handle, propertyID, queryType uint32, buffer []byte) (length uint32, err error) {
 	pq := PropertyQuery{
 		PropertyID: StorageDeviceProperty,
