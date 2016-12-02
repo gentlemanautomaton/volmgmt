@@ -17,9 +17,9 @@ const (
 // represented by the provided handle. The returned information includes the
 // device type and physical device number, as well as the partition number if
 // the device is a partitioned volume.
-func GetDeviceNumber(handle syscall.Handle) (dev DeviceNumber, err error) {
+func GetDeviceNumber(handle syscall.Handle) (devnum DeviceNumber, err error) {
 	var length uint32
-	err = syscall.DeviceIoControl(handle, ioctl.StorageGetDeviceNumber, nil, 0, (*byte)(unsafe.Pointer(&dev)), uint32(unsafe.Sizeof(dev)), &length, nil)
+	err = syscall.DeviceIoControl(handle, ioctl.StorageGetDeviceNumber, nil, 0, (*byte)(unsafe.Pointer(&devnum)), uint32(unsafe.Sizeof(devnum)), &length, nil)
 	return
 }
 

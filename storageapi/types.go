@@ -1,9 +1,9 @@
 package storageapi
 
-// DeviceNumber describes the device type and device number of any device. It is
-// particularly useful for identifying the physical address of mass storage
-// devices and partitioned volumes. For volumes it also holds the partition
-// number of the volume.
+// DeviceNumber describes the device type and device number of storage devices,
+// and can be used to construct the physical address of mass storage devices
+// and logical volumes. For logical volumes it also holds the partition number
+// of the volume.
 type DeviceNumber struct {
 	// DeviceType is a device type code as defined in the ioctlcode package.
 	DeviceType uint16
