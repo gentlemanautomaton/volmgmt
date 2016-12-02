@@ -3,19 +3,23 @@ package volume
 import (
 	"syscall"
 
+	"github.com/gentlemanautomaton/volmgmt/storageapi"
 	"github.com/gentlemanautomaton/volmgmt/volumeapi"
 )
 
-// Volume represents a storage volume.
+/*
 type Volume interface {
 	Name() (string, error)
 	Paths() ([]string, error)
 	Handle() syscall.Handle
 	Close() error
 }
+*/
 
-type volume struct {
+// Volume represents a storage volume. It must be created with a call to New.
+type Volume struct {
 	handle syscall.Handle
+	n      storageapi.DeviceNumber
 }
 
 // New returns a volume representing the volume of the given path, which must be in one of the
@@ -28,10 +32,12 @@ type volume struct {
 // The returned volume will wrap a system handle and will consume system
 // resources until the volume is closed. It is the caller's responsibility to
 // close the volume when finished with it.
-func New(path string) (Volume, error) {
+func New(path string) (*Volume, error) {
 	if len(path) == 0 {
 		return nil, syscall.ERROR_FILE_NOT_FOUND
 	}
+
+	// Create volume handle
 	pathp, err := syscall.UTF16PtrFromString(path)
 	if err != nil {
 		return nil, err
@@ -43,20 +49,44 @@ func New(path string) (Volume, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Query and store the volume information
-	return &volume{
+
+	v := &Volume{
 		handle: h,
-	}, nil
+	}
+
+	// Query and store the volume's device number
+	v.n, err = storageapi.GetDeviceNumber(h)
+	if err != nil {
+		v.Close()
+		return nil, err
+	}
+
+	return v, nil
 }
 
 // Name returns the label of the volume.
-func (v *volume) Name() (string, error) {
+func (v *Volume) Name() (string, error) {
 	name, _, _, _, _, err := volumeapi.GetVolumeInformationByHandle(v.handle)
 	return name, err
 }
 
+// DeviceNumber returns the physical device number of the volume.
+func (v *Volume) DeviceNumber() uint32 {
+	return v.n.DeviceNumber
+}
+
+// PartitionNumber returns the partition number of the volume.
+func (v *Volume) PartitionNumber() int32 {
+	return v.n.PartitionNumber
+}
+
+// DeviceType returns the type of device represented by the volume.
+func (v *Volume) DeviceType() uint16 {
+	return v.n.DeviceType
+}
+
 // Paths returns all of the volume's mount points.
-func (v *volume) Paths() ([]string, error) {
+func (v *Volume) Paths() ([]string, error) {
 	name, err := v.Name()
 	if err != nil {
 		return nil, err
@@ -66,11 +96,11 @@ func (v *volume) Paths() ([]string, error) {
 }
 
 // Handle returns the system handle of the volume.
-func (v *volume) Handle() syscall.Handle {
+func (v *Volume) Handle() syscall.Handle {
 	return v.handle
 }
 
 // Close releases any resources consumed by the volume.
-func (v *volume) Close() error {
+func (v *Volume) Close() error {
 	return syscall.CloseHandle(v.handle)
 }

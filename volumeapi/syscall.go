@@ -18,7 +18,7 @@ const (
 	volPathNamesBufSize = 512
 )
 
-// GetVolumeInformationByHandle retreives information about the volume
+// GetVolumeInformationByHandle retrieves information about the volume
 // represented by the given system handle.
 func GetVolumeInformationByHandle(handle syscall.Handle) (volumeName string, serialNumber uint32, maxComponentLength uint32, flags uint32, fileSystem string, err error) {
 	var vnBuffer [MaxVolumeNameLength]uint16

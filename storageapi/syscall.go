@@ -1,9 +1,18 @@
 package storageapi
 
-import "syscall"
+import (
+	"syscall"
+	"unsafe"
 
-// GetDeviceNumber returns the physical device ID and storage media type for
-// the given volume handle.
-func GetDeviceNumber(handle syscall.Handle) {
-	//syscall.DeviceIoControl(handle, )
+	"github.com/gentlemanautomaton/volmgmt/ioctl"
+)
+
+// GetDeviceNumber retrieves the device numbering of the device represented by
+// the provided handle. The returned information includes the device type and
+// physical device number, as well as the partition number if the device
+// handle represents a partitioned volume.
+func GetDeviceNumber(handle syscall.Handle) (dev DeviceNumber, err error) {
+	var length uint32
+	err = syscall.DeviceIoControl(handle, ioctl.StorageGetDeviceNumber, nil, 0, (*byte)(unsafe.Pointer(&dev)), uint32(unsafe.Sizeof(dev)), &length, nil)
+	return
 }
