@@ -28,7 +28,7 @@ type Volume struct {
 // following formats:
 //
 //  \\.\X:
-//  \\?\Volume{GUID}\
+//  \\?\Volume{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}\
 //  \\.\PhysicalDrive0
 //
 // The returned volume will wrap a system handle and will consume system
