@@ -10,8 +10,9 @@ import (
 var (
 	modkernel32 = windows.NewLazySystemDLL("kernel32.dll")
 
-	procGetVolumeInformationByHandle    = modkernel32.NewProc("GetVolumeInformationByHandleW")
-	procGetVolumePathNamesForVolumeName = modkernel32.NewProc("GetVolumePathNamesForVolumeNameW")
+	procGetVolumeInformationByHandle     = modkernel32.NewProc("GetVolumeInformationByHandleW")
+	procGetVolumeNameForVolumeMountPoint = modkernel32.NewProc("GetVolumeNameForVolumeMountPointW")
+	procGetVolumePathNamesForVolumeName  = modkernel32.NewProc("GetVolumePathNamesForVolumeNameW")
 )
 
 const (
@@ -49,6 +50,33 @@ func GetVolumeInformationByHandle(handle syscall.Handle) (volumeName string, ser
 	}
 	volumeName = syscall.UTF16ToString(vnBuffer[:])
 	fileSystem = syscall.UTF16ToString(fsnBuffer[:])
+	return
+}
+
+// GetVolumeNameForVolumeMountPoint is a low level API wrapper for the syscall.
+func GetVolumeNameForVolumeMountPoint(volumeMountPoint string) (volumeName string, err error) {
+	if len(volumeMountPoint) == 0 {
+		return "", syscall.EINVAL
+	}
+
+	vmpp, err := syscall.UTF16PtrFromString(volumeMountPoint)
+	if err != nil {
+		return "", err
+	}
+
+	var buffer [64]uint16
+	p0 := &buffer[0]
+	r0, _, e := syscall.Syscall(
+		procGetVolumeNameForVolumeMountPoint.Addr(),
+		3,
+		uintptr(unsafe.Pointer(vmpp)),
+		uintptr(unsafe.Pointer(p0)),
+		uintptr(len(buffer)))
+	if r0 == 0 {
+		err = syscall.Errno(e)
+	}
+
+	volumeName = syscall.UTF16ToString(buffer[:])
 	return
 }
 
