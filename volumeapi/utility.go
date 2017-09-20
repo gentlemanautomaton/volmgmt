@@ -9,9 +9,14 @@ func utf16ToSplitString(s []uint16) []string {
 	cut := 0
 	for i, v := range s {
 		if v == 0 {
-			values = append(values, string(utf16.Decode(s[cut:i])))
+			if i-cut > 0 {
+				values = append(values, string(utf16.Decode(s[cut:i])))
+			}
 			cut = i + 1
 		}
+	}
+	if cut < len(s) {
+		values = append(values, string(utf16.Decode(s[cut:])))
 	}
 	return values
 }

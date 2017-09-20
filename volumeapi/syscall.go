@@ -114,7 +114,7 @@ func getVolumePathNamesForVolumeName(volumeName *uint16, buffer []uint16) (lengt
 		uintptr(unsafe.Pointer(&length)),
 		0,
 		0)
-	if r0 != 0 {
+	if r0 == 0 {
 		err = syscall.Errno(e)
 	}
 	return
