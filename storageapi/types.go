@@ -72,3 +72,15 @@ type RawDeviceDescriptor struct {
 	BusType               uint32
 	RawPropertiesLength   uint32
 }
+
+// AccessAlignmentDescriptor describes the byte alignment characteristics of a
+// storage device.
+type AccessAlignmentDescriptor struct {
+	Version                       uint32
+	Size                          uint32
+	BytesPerCacheLine             uint32
+	BytesOffsetForCacheAlignment  uint32
+	BytesPerLogicalSector         uint32
+	BytesPerPhysicalSector        uint32
+	BytesOffsetForSectorAlignment uint32
+}

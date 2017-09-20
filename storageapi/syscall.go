@@ -89,10 +89,29 @@ func QueryDeviceDescriptor(handle syscall.Handle) (descriptor DeviceDescriptor, 
 	return
 }
 
+// QueryAccessAlignment retrieves the access alignment descriptor of the storage
+// device represented by the provided handle.
+func QueryAccessAlignment(handle syscall.Handle) (descriptor AccessAlignmentDescriptor, err error) {
+	_, err = queryProperty(handle, StorageAccessAlignmentProperty, PropertyStandardQuery, (*byte)(unsafe.Pointer(&descriptor)), uint32(unsafe.Sizeof(descriptor)))
+	return
+}
+
 // QueryProperty is a low level API call that retrieves many different kinds
 // of storage device properties. It is prefable to use one of the higher level
 // functions like QueryDeviceDescriptor to retrieve a particular kind of data.
 func QueryProperty(handle syscall.Handle, propertyID, queryType uint32, buffer []byte) (length uint32, err error) {
+	var (
+		s1 = uint32(len(buffer))
+		p1 *byte
+	)
+	if s1 > 0 {
+		p1 = &buffer[0]
+	}
+
+	return queryProperty(handle, propertyID, queryType, p1, s1)
+}
+
+func queryProperty(handle syscall.Handle, propertyID, queryType uint32, buffer *byte, bufferSize uint32) (length uint32, err error) {
 	pq := PropertyQuery{
 		PropertyID: StorageDeviceProperty,
 		QueryType:  queryType,
@@ -100,13 +119,7 @@ func QueryProperty(handle syscall.Handle, propertyID, queryType uint32, buffer [
 	p0 := (*byte)(unsafe.Pointer(&pq))
 	s0 := uint32(unsafe.Sizeof(pq))
 
-	var p1 *byte
-	s1 := uint32(len(buffer))
-	if s1 > 0 {
-		p1 = &buffer[0]
-	}
-
-	err = syscall.DeviceIoControl(handle, ioctl.StorageQueryProperty, p0, s0, p1, s1, &length, nil)
+	err = syscall.DeviceIoControl(handle, ioctl.StorageQueryProperty, p0, s0, buffer, bufferSize, &length, nil)
 
 	return
 }

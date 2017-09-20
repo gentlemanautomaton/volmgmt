@@ -1,6 +1,7 @@
 package volumeapi
 
 import (
+	"errors"
 	"syscall"
 	"unsafe"
 
@@ -21,11 +22,11 @@ const (
 
 // GetVolumeInformationByHandle retrieves information about the volume
 // represented by the given system handle.
-func GetVolumeInformationByHandle(handle syscall.Handle) (volumeName string, serialNumber uint32, maxComponentLength uint32, flags uint32, fileSystem string, err error) {
-	var vnBuffer [MaxVolumeNameLength]uint16
+func GetVolumeInformationByHandle(handle syscall.Handle) (volumeLabel string, serialNumber uint32, maxComponentLength uint32, flags uint32, fileSystem string, err error) {
+	var vlBuffer [MaxVolumeLabelLength]uint16
 	var fsnBuffer [MaxFileSystemNameLength]uint16
 
-	p0 := &vnBuffer[0]
+	p0 := &vlBuffer[0]
 	p1 := &fsnBuffer[0]
 
 	r0, _, e := syscall.Syscall9(
@@ -33,7 +34,7 @@ func GetVolumeInformationByHandle(handle syscall.Handle) (volumeName string, ser
 		8,
 		uintptr(handle),
 		uintptr(unsafe.Pointer(p0)),
-		uintptr(MaxVolumeNameLength),
+		uintptr(MaxVolumeLabelLength),
 		uintptr(unsafe.Pointer(&serialNumber)),
 		uintptr(unsafe.Pointer(&maxComponentLength)),
 		uintptr(unsafe.Pointer(&flags)),
@@ -48,12 +49,24 @@ func GetVolumeInformationByHandle(handle syscall.Handle) (volumeName string, ser
 		}
 		return
 	}
-	volumeName = syscall.UTF16ToString(vnBuffer[:])
+	volumeLabel = syscall.UTF16ToString(vlBuffer[:])
 	fileSystem = syscall.UTF16ToString(fsnBuffer[:])
 	return
 }
 
-// GetVolumeNameForVolumeMountPoint is a low level API wrapper for the syscall.
+// GetVolumeNameForVolumeMountPoint retrieves the first volume name for the
+// given mount point, which is a path in one of the following forms:
+//
+//  X:\
+//  Y:\MountX\
+//
+// Volume names are also known as volume GUID paths, and are based on the
+// globally unique identifier of the volume. Volume names are not supplied by
+// or editable by users, unlike volume labels.
+//
+// Volume names will always be of this form:
+//
+//   \\?\Volume{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}\
 func GetVolumeNameForVolumeMountPoint(volumeMountPoint string) (volumeName string, err error) {
 	if len(volumeMountPoint) == 0 {
 		return "", syscall.EINVAL
@@ -64,24 +77,29 @@ func GetVolumeNameForVolumeMountPoint(volumeMountPoint string) (volumeName strin
 		return "", err
 	}
 
-	var buffer [64]uint16
-	p0 := &buffer[0]
+	var vnBuffer [MaxVolumeNameLength]uint16
+	p0 := &vnBuffer[0]
+
 	r0, _, e := syscall.Syscall(
 		procGetVolumeNameForVolumeMountPoint.Addr(),
 		3,
 		uintptr(unsafe.Pointer(vmpp)),
 		uintptr(unsafe.Pointer(p0)),
-		uintptr(len(buffer)))
+		uintptr(MaxVolumeNameLength))
 	if r0 == 0 {
-		err = syscall.Errno(e)
+		if e != 0 {
+			err = syscall.Errno(e)
+		} else {
+			err = syscall.EINVAL
+		}
+		return
 	}
-
-	volumeName = syscall.UTF16ToString(buffer[:])
+	volumeName = syscall.UTF16ToString(vnBuffer[:])
 	return
 }
 
 // GetVolumePathNamesForVolumeName returns a complete set of volume paths and
-// mount points for the given volume name, which must be a volume GUID path in
+// mount points for the given volume name, which must be a volume GUID path of
 // this form:
 //
 //   \\?\Volume{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}\
@@ -146,4 +164,37 @@ func getVolumePathNamesForVolumeName(volumeName *uint16, buffer []uint16) (lengt
 		err = syscall.Errno(e)
 	}
 	return
+}
+
+// CreateUSNJournal will create or modify a change journal on the file system
+// volume represented by the provided handle.
+func CreateUSNJournal(handle syscall.Handle) (err error) {
+	return errors.New("Not yet implemented")
+}
+
+// DeleteUSNJournal will delete a change journal on the file system volume
+// represented by the provided handle.
+func DeleteUSNJournal(handle syscall.Handle) (err error) {
+	return errors.New("Not yet implemented")
+}
+
+// EnumUSNData will enumerate change journal data on the file system volume
+// represented by the provided handle.
+func EnumUSNData(handle syscall.Handle) (err error) {
+	return errors.New("Not yet implemented")
+}
+
+// MarkHandle will add file change information about a specified file and to
+// the files metadata and to the USN change journal of the file system volume
+// on which the file resides.
+func MarkHandle(handle syscall.Handle) (err error) {
+	return errors.New("Not yet implemented")
+}
+
+func QueryUSNJournal(handle syscall.Handle) (err error) {
+	return errors.New("Not yet implemented")
+}
+
+func ReadUSNJournal(handle syscall.Handle) (err error) {
+	return errors.New("Not yet implemented")
 }
