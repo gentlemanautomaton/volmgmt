@@ -1,9 +1,14 @@
 package volume
 
 import (
-	"errors"
+	"fmt"
+	"strings"
 	"syscall"
 
+	"golang.org/x/sys/windows"
+
+	"github.com/gentlemanautomaton/volmgmt/guidconv"
+	"github.com/gentlemanautomaton/volmgmt/mountapi"
 	"github.com/gentlemanautomaton/volmgmt/storageapi"
 	"github.com/gentlemanautomaton/volmgmt/volumeapi"
 )
@@ -80,6 +85,47 @@ func (v *Volume) Label() (string, error) {
 	return label, err
 }
 
+// Name returns the volume GUID name.
+//
+// BUG: This currently only works for device drivers that supply a stable GUID.
+func (v *Volume) Name() (string, error) {
+	guid, err := v.GUID()
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("\\\\?\\Volume%s\\", strings.ToLower(guidconv.Format(&guid))), nil
+}
+
+// GUID returns a GUID for the volume that is supplied by the mount manager.
+//
+// If the underlying device driver supplies a stable GUID, the mount manager
+// will use and return that value.
+//
+// BUG: This currently only works for device drivers that supply a stable GUID.
+func (v *Volume) GUID() (guid windows.GUID, err error) {
+	guid, err = v.StableGUID()
+	if err == nil {
+		return
+	}
+	// TODO: Query the mount manager
+	return
+}
+
+// StableGUID returns a stable GUID for the volume that is supplied by its
+// device driver.
+//
+// Not all device drivers are capable of supplying a stable GUID. If this
+// device doesn't supply one an error will be returned. In such cases the
+// mount manager will generate a GUID for the volume, which can be accessed
+// via v.GUID().
+func (v *Volume) StableGUID() (guid windows.GUID, err error) {
+	guid, err = mountapi.QueryStableGUID(v.handle)
+	if err != nil {
+		err = fmt.Errorf("unable to retrieve stable GUID: %v", err)
+	}
+	return
+}
+
 // DeviceNumber returns the physical device number of the volume.
 func (v *Volume) DeviceNumber() uint32 {
 	return v.devnum.DeviceNumber
@@ -125,21 +171,25 @@ func (v *Volume) SerialNumber() string {
 	return v.descriptor.SerialNumber
 }
 
+// DeviceID returns the device ID of the volume.
+func (v *Volume) DeviceID() ([]byte, error) {
+	return mountapi.QueryUniqueID(v.handle)
+}
+
+// DevicePath returns an NT namespace device path for the volume.
+func (v *Volume) DevicePath() (string, error) {
+	return mountapi.QueryDeviceName(v.handle)
+}
+
 // Paths returns all of the volume's mount points.
 func (v *Volume) Paths() ([]string, error) {
-	// FIXME: We need the volume name in a form that is usable by
-	//        GetVolumePathNamesForVolumeName. Some potential options:
-	//        * Call SetupDiGetClassDevs (Requires enumeration? Bleh.)
-	//        * GetVolumeNameForVolumeMountPoint?
-	return nil, errors.New("volume.Paths() is not yet implemented")
-	/*
-		name, err := v.Name()
-		if err != nil {
-			return nil, err
-		}
+	// TODO: Consider using IOCTL_MOUNTMGR_QUERY_POINTS instead
+	name, err := v.Name()
+	if err != nil {
+		return nil, err
+	}
 
-		return volumeapi.GetVolumePathNamesForVolumeName(name)
-	*/
+	return volumeapi.GetVolumePathNamesForVolumeName(name)
 }
 
 // Handle returns the system handle of the volume.
