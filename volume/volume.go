@@ -8,6 +8,7 @@ import (
 	"golang.org/x/sys/windows"
 
 	"github.com/gentlemanautomaton/volmgmt/guidconv"
+	"github.com/gentlemanautomaton/volmgmt/hsync"
 	"github.com/gentlemanautomaton/volmgmt/mountapi"
 	"github.com/gentlemanautomaton/volmgmt/storageapi"
 	"github.com/gentlemanautomaton/volmgmt/volumeapi"
@@ -24,7 +25,7 @@ type Volume interface {
 
 // Volume represents a storage volume. It must be created with a call to New.
 type Volume struct {
-	handle     syscall.Handle
+	h          *hsync.Handle
 	devnum     storageapi.DeviceNumber
 	descriptor storageapi.DeviceDescriptor
 }
@@ -40,37 +41,24 @@ type Volume struct {
 // resources until the volume is closed. It is the caller's responsibility to
 // close the volume when finished with it.
 func New(path string) (*Volume, error) {
-	if len(path) == 0 {
-		return nil, syscall.ERROR_FILE_NOT_FOUND
-	}
+	const (
+		// access = 0
+		// access = syscall.GENERIC_READ | syscall.GENERIC_WRITE
 
-	// Create volume handle
-	pathp, err := syscall.UTF16PtrFromString(path)
-	if err != nil {
-		return nil, err
-	}
-	//access := uint32(syscall.GENERIC_READ | syscall.GENERIC_WRITE)
-	access := uint32(syscall.GENERIC_READ)
-	//access := uint32(0)
-	mode := uint32(syscall.FILE_SHARE_READ | syscall.FILE_SHARE_WRITE)
-	h, err := syscall.CreateFile(pathp, access, mode, nil, syscall.OPEN_EXISTING, 0, 0)
+		access = syscall.GENERIC_READ
+		mode   = syscall.FILE_SHARE_READ | syscall.FILE_SHARE_WRITE
+	)
+
+	h, err := volumeapi.Handle(path, access, mode)
 	if err != nil {
 		return nil, err
 	}
 
 	v := &Volume{
-		handle: h,
+		h: hsync.New(h),
 	}
 
-	// Query and store the volume's device number
-	v.devnum, err = storageapi.GetDeviceNumber(h)
-	if err != nil {
-		v.Close()
-		return nil, err
-	}
-
-	// Query and store the volume's device descriptor
-	v.descriptor, err = storageapi.QueryDeviceDescriptor(h)
+	err = v.init()
 	if err != nil {
 		v.Close()
 		return nil, err
@@ -79,9 +67,27 @@ func New(path string) (*Volume, error) {
 	return v, nil
 }
 
+func (v *Volume) init() error {
+	var err error
+
+	// Query and store the volume's device number
+	v.devnum, err = storageapi.GetDeviceNumber(v.h.Handle())
+	if err != nil {
+		return err
+	}
+
+	// Query and store the volume's device descriptor
+	v.descriptor, err = storageapi.QueryDeviceDescriptor(v.h.Handle())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Label returns the label of the volume.
 func (v *Volume) Label() (string, error) {
-	label, _, _, _, _, err := volumeapi.GetVolumeInformationByHandle(v.handle)
+	label, _, _, _, _, err := volumeapi.GetVolumeInformationByHandle(v.h.Handle())
 	return label, err
 }
 
@@ -93,7 +99,7 @@ func (v *Volume) Name() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("\\\\?\\Volume%s\\", strings.ToLower(guidconv.Format(&guid))), nil
+	return fmt.Sprintf(`\\?\Volume%s\`, strings.ToLower(guidconv.Format(&guid))), nil
 }
 
 // GUID returns a GUID for the volume that is supplied by the mount manager.
@@ -119,7 +125,7 @@ func (v *Volume) GUID() (guid windows.GUID, err error) {
 // mount manager will generate a GUID for the volume, which can be accessed
 // via v.GUID().
 func (v *Volume) StableGUID() (guid windows.GUID, err error) {
-	guid, err = mountapi.QueryStableGUID(v.handle)
+	guid, err = mountapi.QueryStableGUID(v.h.Handle())
 	if err != nil {
 		err = fmt.Errorf("unable to retrieve stable GUID: %v", err)
 	}
@@ -173,12 +179,12 @@ func (v *Volume) SerialNumber() string {
 
 // DeviceID returns the device ID of the volume.
 func (v *Volume) DeviceID() ([]byte, error) {
-	return mountapi.QueryUniqueID(v.handle)
+	return mountapi.QueryUniqueID(v.h.Handle())
 }
 
 // DevicePath returns an NT namespace device path for the volume.
 func (v *Volume) DevicePath() (string, error) {
-	return mountapi.QueryDeviceName(v.handle)
+	return mountapi.QueryDeviceName(v.h.Handle())
 }
 
 // Paths returns all of the volume's mount points.
@@ -194,10 +200,10 @@ func (v *Volume) Paths() ([]string, error) {
 
 // Handle returns the system handle of the volume.
 func (v *Volume) Handle() syscall.Handle {
-	return v.handle
+	return v.h.Handle()
 }
 
 // Close releases any resources consumed by the volume.
 func (v *Volume) Close() error {
-	return syscall.CloseHandle(v.handle)
+	return v.h.Close()
 }
