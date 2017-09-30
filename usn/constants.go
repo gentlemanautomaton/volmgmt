@@ -1,5 +1,10 @@
 package usn
 
+import (
+	"fmt"
+	"strings"
+)
+
 // USN Journal Source Info Codes
 const (
 	SourceDataManagement              = 0x00000001 // USN_SOURCE_DATA_MANAGEMENT
@@ -36,3 +41,30 @@ const (
 	ReasonIntegrityChange     = 0x00800000 // USN_REASON_INTEGRITY_CHANGE
 	ReasonClose               = 0x80000000 // USN_REASON_CLOSE
 )
+
+// ParseReason interprets the given string as one or more reason codes and
+// returns a uint32 representing their combined bitmask.
+func ParseReason(reason string) (code uint32, err error) {
+	reason = strings.ToLower(reason)
+	reason = strings.Replace(reason, ",", "|", -1)
+	parts := strings.Split(reason, "|")
+
+	for _, part := range parts {
+		switch part {
+		case "overwrite", "dataoverwrite", "reasondataoverwrite", "usn_reason_data_overwrite":
+			code |= ReasonDataOverwrite
+		case "extend", "dataextend", "reasondataextend", "usn_reason_data_extend":
+			code |= ReasonDataExtend
+		case "truncation", "datatruncation", "reasondatatruncation", "usn_reason_data_truncation":
+			code |= ReasonDataTruncation
+		case "create", "filecreate", "reasonfilecreate", "usn_reason_file_create":
+			code |= ReasonFileCreate
+		case "delete", "filedelete", "reasonfiledelete", "usn_reason_file_delete":
+			code |= ReasonFileDelete
+		default:
+			err = fmt.Errorf("unsupported or unknown reason code: %s", part)
+		}
+	}
+
+	return
+}
