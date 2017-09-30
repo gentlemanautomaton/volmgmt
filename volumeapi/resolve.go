@@ -83,7 +83,6 @@ func MountPoint(s string) (mountPoint, volumeName string, err error) {
 	const sep = string(filepath.Separator)
 
 	mountPoint = s
-	fmt.Println(mountPoint)
 	volumeName, err = GetVolumeNameForVolumeMountPoint(s)
 	if err != nil {
 		// Assume s is a path. Try walking up the directory tree until we hit a
@@ -95,7 +94,6 @@ func MountPoint(s string) (mountPoint, volumeName string, err error) {
 			// removes it unless it's at the root. We add it back here if it's
 			// missing.
 			mountPoint = addTrailingSlash(path)
-			fmt.Println(mountPoint)
 			volumeName, err = GetVolumeNameForVolumeMountPoint(mountPoint)
 			if err == nil {
 				break
