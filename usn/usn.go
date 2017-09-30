@@ -1,4 +1,4 @@
 package usn
 
 // USN represents a volume update sequence number.
-type USN uint64
+type USN int64

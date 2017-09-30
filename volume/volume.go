@@ -11,6 +11,7 @@ import (
 	"github.com/gentlemanautomaton/volmgmt/hsync"
 	"github.com/gentlemanautomaton/volmgmt/mountapi"
 	"github.com/gentlemanautomaton/volmgmt/storageapi"
+	"github.com/gentlemanautomaton/volmgmt/usn"
 	"github.com/gentlemanautomaton/volmgmt/volumeapi"
 )
 
@@ -201,6 +202,11 @@ func (v *Volume) Paths() ([]string, error) {
 // Handle returns the system handle of the volume.
 func (v *Volume) Handle() syscall.Handle {
 	return v.h.Handle()
+}
+
+// Journal returns a change journal accessor for the volume.
+func (v *Volume) Journal() *usn.Journal {
+	return usn.NewJournalWithHandle(v.h.Clone())
 }
 
 // Close releases any resources consumed by the volume.

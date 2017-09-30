@@ -1,7 +1,6 @@
 package volumeapi
 
 import (
-	"errors"
 	"syscall"
 	"unsafe"
 
@@ -164,37 +163,4 @@ func getVolumePathNamesForVolumeName(volumeName *uint16, buffer []uint16) (lengt
 		err = syscall.Errno(e)
 	}
 	return
-}
-
-// CreateUSNJournal will create or modify a change journal on the file system
-// volume represented by the provided handle.
-func CreateUSNJournal(handle syscall.Handle) (err error) {
-	return errors.New("Not yet implemented")
-}
-
-// DeleteUSNJournal will delete a change journal on the file system volume
-// represented by the provided handle.
-func DeleteUSNJournal(handle syscall.Handle) (err error) {
-	return errors.New("Not yet implemented")
-}
-
-// EnumUSNData will enumerate change journal data on the file system volume
-// represented by the provided handle.
-func EnumUSNData(handle syscall.Handle) (err error) {
-	return errors.New("Not yet implemented")
-}
-
-// MarkHandle will add file change information about a specified file and to
-// the files metadata and to the USN change journal of the file system volume
-// on which the file resides.
-func MarkHandle(handle syscall.Handle) (err error) {
-	return errors.New("Not yet implemented")
-}
-
-func QueryUSNJournal(handle syscall.Handle) (err error) {
-	return errors.New("Not yet implemented")
-}
-
-func ReadUSNJournal(handle syscall.Handle) (err error) {
-	return errors.New("Not yet implemented")
 }
