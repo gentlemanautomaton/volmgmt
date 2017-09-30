@@ -95,16 +95,12 @@ func run(feed <-chan usn.Record, include, exclude *regexp.Regexp, done chan stru
 	defer close(done)
 
 	for record := range feed {
-		if include != nil {
-			if !include.MatchString(record.FileName) {
-				continue
-			}
+		if include != nil && !include.MatchString(record.FileName) {
+			continue
 		}
 
-		if exclude != nil {
-			if exclude.MatchString(record.FileName) {
-				continue
-			}
+		if exclude != nil && exclude.MatchString(record.FileName) {
+			continue
 		}
 
 		action := "OTHER "
