@@ -16,6 +16,16 @@ const (
 	recordV4Size     = 80
 )
 
+var (
+	// ErrTruncatedRecord is returned when the data buffer containing a USN
+	// record appears to have been truncated.
+	ErrTruncatedRecord = errors.New("USN record data was truncated")
+
+	// ErrInvalidRecordLength is returned when the data buffer containing a USN
+	// record contains has an invalid record length value.
+	ErrInvalidRecordLength = errors.New("USN record length is invalid (possible data corruption)")
+)
+
 // Record represents a change journal record.
 type Record struct {
 	RecordLength              uint32
@@ -34,7 +44,7 @@ type Record struct {
 func (r *Record) UnmarshalBinary(data []byte) error {
 	bufSize := len(data)
 	if bufSize < recordHeaderSize {
-		return errors.New("insufficient data for USN record header")
+		return ErrTruncatedRecord
 	}
 
 	hdr := (*RawRecordHeader)(unsafe.Pointer(&data[0]))
@@ -42,10 +52,17 @@ func (r *Record) UnmarshalBinary(data []byte) error {
 	r.MajorVersion = hdr.MajorVersion
 	r.MinorVersion = hdr.MinorVersion
 
+	if r.RecordLength == 0 {
+		return ErrInvalidRecordLength
+	}
+
 	switch hdr.MajorVersion {
 	case 2:
 		if bufSize < recordV2Size {
-			return errors.New("insufficient data for v2 USN record")
+			return ErrTruncatedRecord
+		}
+		if r.RecordLength < recordV2Size {
+			return ErrInvalidRecordLength
 		}
 		raw := (*RawRecordV2)(unsafe.Pointer(&data[0]))
 		r.USN = raw.USN
@@ -55,7 +72,10 @@ func (r *Record) UnmarshalBinary(data []byte) error {
 		start := int(raw.FileNameOffset)
 		end := start + int(raw.FileNameLength)
 		if end > bufSize {
-			return errors.New("insufficient data for v2 USN record file name")
+			return ErrTruncatedRecord
+		}
+		if end > int(r.RecordLength) {
+			return ErrInvalidRecordLength
 		}
 		r.FileName = utf16BytesToString(data[start:end])
 	default:
