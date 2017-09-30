@@ -2,7 +2,6 @@ package usn
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"syscall"
 	"unsafe"
@@ -15,9 +14,14 @@ var (
 	// ErrNegativeUSN is returned when seeking to a negative update sequence
 	// number.
 	ErrNegativeUSN = errors.New("the requested operation would result in a negative update sequence number")
+
 	// ErrInvalidWhence is returned when an invalid or unsupported whence value is
 	// supplied to a Seek function.
 	ErrInvalidWhence = errors.New("invalid whence value")
+
+	// ErrInsufficientBuffer is returned when a record cannot be read because the
+	ErrInsufficientBuffer = errors.New("unable to read record data due to insufficient buffer size")
+	// buffer is too small to receive its data.
 )
 
 // Cursor provides a more idiomatic means of reading USN change journal data
@@ -61,7 +65,6 @@ func NewCursorWithHandle(handle *hsync.Handle, reasonMask uint32) (*Cursor, erro
 	return &Cursor{
 		h:          handle,
 		data:       data,
-		usn:        USN(data.FirstUSN),
 		reasonMask: reasonMask,
 	}, nil
 }
@@ -92,6 +95,13 @@ func (c *Cursor) Read(p []byte) (n int, err error) {
 
 		// We read something, update the cursor's position
 		c.usn = next
+
+		if length == 8 {
+			// The cursor moved forward but we didn't get any records back, probably
+			// because the reason mask filtered out whatever was written to the
+			// journal. This is a normal occurence; treat it as an EOF condition.
+			return 0, io.EOF
+		}
 	}
 	return
 }
@@ -107,9 +117,8 @@ func (c *Cursor) Seek(offset int64, whence int) (usn int64, err error) {
 		}
 	case io.SeekCurrent:
 		if offset < 0 {
-			// TODO: Make sure comparing against LowestValidUSN is what we should be
-			//       doing here.
-			if c.usn+USN(offset) < c.data.LowestValidUSN {
+			// TODO: Make sure that negative USN values don't occur in normal operation
+			if c.usn+USN(offset) < 0 {
 				err = ErrNegativeUSN
 			} else {
 				c.usn += USN(offset)
@@ -146,14 +155,9 @@ func (c *Cursor) Next(buffer []byte) (records []Record, err error) {
 		}
 		records = append(records, record)
 
-		if record.RecordLength < recordV2Size {
-			err = fmt.Errorf("invalid USN journal record length: %d", record.RecordLength)
-			return
-		}
 		n -= int(record.RecordLength)
-
 		if n < recordV2Size {
-			// The next record didn't fit in the buffer
+			// The next record wouldn't fit in the buffer
 			return
 		}
 
