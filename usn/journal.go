@@ -60,6 +60,11 @@ func (j *Journal) Cursor(reasonMask uint32) (*Cursor, error) {
 	return NewCursorWithHandle(j.h.Clone(), reasonMask)
 }
 
+// Monitor returns a new monitor for the journal.
+func (j *Journal) Monitor() *Monitor {
+	return NewMonitorWithHandle(j.h.Clone())
+}
+
 // Close releases any resources consumed by the journal.
 func (j *Journal) Close() {
 	j.h.Close()
