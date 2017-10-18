@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"strings"
 	"syscall"
 	"time"
 
@@ -26,14 +27,14 @@ func main() {
 
 	var (
 		reasonStr  string
-		reason     uint32
+		reason     usn.Reason
 		includeStr string
 		include    *regexp.Regexp
 		excludeStr string
 		exclude    *regexp.Regexp
 	)
 
-	flag.StringVar(&reasonStr, "t", "create,delete", "journal record types to include (comma-separated)")
+	flag.StringVar(&reasonStr, "t", "*", "journal record types to include (comma-separated)")
 	flag.StringVar(&includeStr, "i", "", "regular expression for file match (inclusion)")
 	flag.StringVar(&excludeStr, "e", "", "regular expression for file match (exclusion)")
 	flag.Parse()
@@ -103,13 +104,7 @@ func run(feed <-chan usn.Record, include, exclude *regexp.Regexp, done chan stru
 			continue
 		}
 
-		action := "OTHER "
-		if record.Reason&usn.ReasonFileCreate != 0 {
-			action = "CREATE"
-		}
-		if record.Reason&usn.ReasonFileDelete != 0 {
-			action = "DELETE"
-		}
+		action := strings.ToUpper(record.Reason.Join("|", usn.ReasonFormatShort))
 
 		fmt.Printf("%s  %s  %s\n", record.TimeStamp.Format("2006-01-02 15:04:05.000000"), action, record.FileName)
 	}

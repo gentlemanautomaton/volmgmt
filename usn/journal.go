@@ -56,7 +56,7 @@ func (j *Journal) Query() (data RawJournalData, err error) {
 }
 
 // Cursor returns a new cursor for the journal.
-func (j *Journal) Cursor(reasonMask uint32) (*Cursor, error) {
+func (j *Journal) Cursor(reasonMask Reason) (*Cursor, error) {
 	return NewCursorWithHandle(j.h.Clone(), reasonMask)
 }
 

@@ -5,7 +5,7 @@ package usn
 type RawReadOptions struct {
 	// Version 0 Fields
 	StartUSN          USN
-	ReasonMask        uint32
+	ReasonMask        Reason
 	ReturnOnlyOnClose uint32
 	Timeout           int64
 	BytesToWaitFor    uint64

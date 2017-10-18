@@ -90,7 +90,7 @@ func NewMonitorWithHandle(handle *hsync.Handle) *Monitor {
 // beginning of the journal.
 //
 // If the monitor has already been started an error will be returned.
-func (m *Monitor) Run(start USN, interval time.Duration, reasonMask uint32) error {
+func (m *Monitor) Run(start USN, interval time.Duration, reasonMask Reason) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 

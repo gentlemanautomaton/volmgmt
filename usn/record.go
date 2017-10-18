@@ -35,7 +35,7 @@ type Record struct {
 	ParentFileReferenceNumber uint64
 	USN                       USN
 	TimeStamp                 time.Time
-	Reason                    uint32
+	Reason                    Reason
 	SourceInfo                uint32
 	FileName                  string
 }
@@ -108,7 +108,7 @@ type RawRecordV2 struct {
 	ParentFileReferenceNumber uint64
 	USN                       USN
 	TimeStamp                 windows.Filetime
-	Reason                    uint32
+	Reason                    Reason
 	SourceInfo                uint32
 	SecurityID                uint32
 	FileAttributes            uint32
@@ -124,7 +124,7 @@ type RawRecordV3 struct {
 	ParentFileReferenceNumber FileID128
 	USN                       USN
 	TimeStamp                 windows.Filetime
-	Reason                    uint32
+	Reason                    Reason
 	SourceInfo                uint32
 	SecurityID                uint32
 	FileAttributes            uint32
@@ -139,7 +139,7 @@ type RawRecordV4 struct {
 	FileReferenceNumber       FileID128
 	ParentFileReferenceNumber FileID128
 	USN                       USN
-	Reason                    uint32
+	Reason                    Reason
 	SourceInfo                uint32
 	RemainingExtents          uint32
 	NumberOfExtents           uint16

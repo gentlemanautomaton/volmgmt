@@ -30,13 +30,13 @@ type Cursor struct {
 	data       RawJournalData
 	h          *hsync.Handle
 	usn        USN
-	reasonMask uint32
+	reasonMask Reason
 	// TODO: Consider adding some sort of buffer (or let the user provide one)
 }
 
 // NewCursor returns a USN change journal cursor for the volume described by
 // path.
-func NewCursor(path string, reasonMask uint32) (cursor *Cursor, err error) {
+func NewCursor(path string, reasonMask Reason) (cursor *Cursor, err error) {
 	const (
 		access = syscall.GENERIC_READ
 		mode   = syscall.FILE_SHARE_READ | syscall.FILE_SHARE_WRITE
@@ -56,7 +56,7 @@ func NewCursor(path string, reasonMask uint32) (cursor *Cursor, err error) {
 // When the cursor is closed its associated handle will also be closed. When
 // providing an existing handle that will be used elsewhere be sure to
 // clone it first.
-func NewCursorWithHandle(handle *hsync.Handle, reasonMask uint32) (*Cursor, error) {
+func NewCursorWithHandle(handle *hsync.Handle, reasonMask Reason) (*Cursor, error) {
 	data, err := QueryJournal(handle.Handle())
 	if err != nil {
 		return nil, err
