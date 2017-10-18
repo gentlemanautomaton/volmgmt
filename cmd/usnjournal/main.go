@@ -115,6 +115,11 @@ func compileRegex(re string) *regexp.Regexp {
 		return nil
 	}
 
+	// Force case-insensitive matching
+	if !strings.HasPrefix(re, "(?i)") {
+		re = "(?i)" + re
+	}
+
 	c, err := regexp.Compile(re)
 	if err != nil {
 		usage(fmt.Sprintf("Unable to compile regular expression \"%s\": %v\n", re, err))
