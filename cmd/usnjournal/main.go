@@ -69,6 +69,12 @@ func main() {
 		os.Exit(2)
 	}
 
+	location, err := time.LoadLocation("Local")
+	if err != nil {
+		fmt.Printf("Unable to load local timezone information: %v\n", err)
+		os.Exit(2)
+	}
+
 	monitor := journal.Monitor()
 	defer monitor.Close()
 
@@ -81,7 +87,7 @@ func main() {
 	}
 
 	done := make(chan struct{})
-	go run(feed, include, exclude, done)
+	go run(feed, location, include, exclude, done)
 
 	ch := make(chan os.Signal)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
@@ -92,7 +98,7 @@ func main() {
 	}
 }
 
-func run(feed <-chan usn.Record, include, exclude *regexp.Regexp, done chan struct{}) {
+func run(feed <-chan usn.Record, location *time.Location, include, exclude *regexp.Regexp, done chan struct{}) {
 	defer close(done)
 
 	for record := range feed {
@@ -106,7 +112,7 @@ func run(feed <-chan usn.Record, include, exclude *regexp.Regexp, done chan stru
 
 		action := strings.ToUpper(record.Reason.Join("|", usn.ReasonFormatShort))
 
-		fmt.Printf("%s  %s  %s\n", record.TimeStamp.Format("2006-01-02 15:04:05.000000"), action, record.FileName)
+		fmt.Printf("%s  %s  %s\n", record.TimeStamp.In(location).Format("2006-01-02 15:04:05.000000 MST"), action, record.FileName)
 	}
 }
 
