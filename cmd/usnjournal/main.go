@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gentlemanautomaton/volmgmt/fileattr"
 	"github.com/gentlemanautomaton/volmgmt/usn"
 )
 
@@ -110,9 +111,10 @@ func run(feed <-chan usn.Record, location *time.Location, include, exclude *rege
 			continue
 		}
 
+		attr := record.FileAttributes.Join("", fileattr.FormatCode)
 		action := strings.ToUpper(record.Reason.Join("|", usn.ReasonFormatShort))
 
-		fmt.Printf("%s  %s  %s\n", record.TimeStamp.In(location).Format("2006-01-02 15:04:05.000000 MST"), action, record.FileName)
+		fmt.Printf("%s  %s  %s  %s\n", record.TimeStamp.In(location).Format("2006-01-02 15:04:05.000000 MST"), attr, action, record.FileName)
 	}
 }
 

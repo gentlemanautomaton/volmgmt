@@ -6,6 +6,8 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/gentlemanautomaton/volmgmt/fileattr"
+
 	"golang.org/x/sys/windows"
 )
 
@@ -37,6 +39,7 @@ type Record struct {
 	TimeStamp                 time.Time
 	Reason                    Reason
 	SourceInfo                uint32
+	FileAttributes            fileattr.Value
 	FileName                  string
 }
 
@@ -69,6 +72,7 @@ func (r *Record) UnmarshalBinary(data []byte) error {
 		r.TimeStamp = time.Unix(0, raw.TimeStamp.Nanoseconds())
 		r.Reason = raw.Reason
 		r.SourceInfo = raw.SourceInfo
+		r.FileAttributes = raw.FileAttributes
 		start := int(raw.FileNameOffset)
 		end := start + int(raw.FileNameLength)
 		if end > bufSize {
@@ -111,7 +115,7 @@ type RawRecordV2 struct {
 	Reason                    Reason
 	SourceInfo                uint32
 	SecurityID                uint32
-	FileAttributes            uint32
+	FileAttributes            fileattr.Value
 	FileNameLength            uint16
 	FileNameOffset            uint16
 	_                         uint16
@@ -127,7 +131,7 @@ type RawRecordV3 struct {
 	Reason                    Reason
 	SourceInfo                uint32
 	SecurityID                uint32
-	FileAttributes            uint32
+	FileAttributes            fileattr.Value
 	FileNameLength            uint16
 	FileNameOffset            uint16
 	_                         uint16
