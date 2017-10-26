@@ -80,7 +80,7 @@ func (c *Cursor) Read(p []byte) (n int, err error) {
 		ReasonMask:      c.reasonMask,
 		JournalID:       c.data.JournalID,
 		MinMajorVersion: 2,
-		MaxMajorVersion: 2,
+		MaxMajorVersion: 3,
 	}
 	length, err := ReadJournal(c.h.Handle(), opts, p)
 	n = int(length)
