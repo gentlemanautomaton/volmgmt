@@ -62,7 +62,7 @@ func LittleEndian(value [16]byte) ID {
 // Int64 returns the file identifier as a 64-bit signed integer if it can be
 // represented as one. If it cannot, -1 is returned.
 func (id ID) Int64() int64 {
-	lower, upper := id.Split()
+	upper, lower := id.Split()
 	if upper != 0 {
 		return -1
 	}
@@ -87,7 +87,7 @@ func (id ID) String() string {
 }
 
 // Split breaks the ID into upper and lower 64-bit values.
-func (id ID) Split() (lower, upper int64) {
+func (id ID) Split() (upper, lower int64) {
 	upper = int64(id[0])<<56 | int64(id[1])<<48 | int64(id[2])<<40 | int64(id[3])<<32 | int64(id[4])<<24 | int64(id[5])<<16 | int64(id[6])<<8 | int64(id[7])
 	lower = int64(id[8])<<56 | int64(id[9])<<48 | int64(id[10])<<40 | int64(id[11])<<32 | int64(id[12])<<24 | int64(id[13])<<16 | int64(id[14])<<8 | int64(id[15])
 	return
