@@ -111,11 +111,12 @@ func run(feed <-chan usn.Record, location *time.Location, include, exclude *rege
 			continue
 		}
 
+		id := record.FileReferenceNumber.String()
 		when := record.TimeStamp.In(location).Format("2006-01-02 15:04:05.000000 MST")
 		attr := record.FileAttributes.Join("", fileattr.FormatCode)
 		action := strings.ToUpper(record.Reason.Join("|", usn.ReasonFormatShort))
 
-		fmt.Printf("%s  \"%s\"  %s  %s\n", when, record.FileName, attr, action)
+		fmt.Printf("%s  %d.%d  %20s  \"%s\"  %s  %s\n", when, record.MajorVersion, record.MinorVersion, id, record.FileName, attr, action)
 	}
 }
 
