@@ -116,7 +116,7 @@ func run(feed <-chan usn.Record, location *time.Location, include, exclude *rege
 		attr := record.FileAttributes.Join("", fileattr.FormatCode)
 		action := strings.ToUpper(record.Reason.Join("|", usn.ReasonFormatShort))
 
-		fmt.Printf("%s  %d.%d  %20s  \"%s\"  %s  %s\n", when, record.MajorVersion, record.MinorVersion, id, record.FileName, attr, action)
+		fmt.Printf("%s  %d.%d  %-5s  %20s  \"%s\"  %s  %s\n", when, record.MajorVersion, record.MinorVersion, record.SourceInfo, id, record.FileName, attr, action)
 	}
 }
 
