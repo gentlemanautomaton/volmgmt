@@ -8,6 +8,7 @@ import (
 
 	"github.com/gentlemanautomaton/volmgmt/fileattr"
 	"github.com/gentlemanautomaton/volmgmt/fileref"
+	"github.com/gentlemanautomaton/volmgmt/usnsource"
 
 	"golang.org/x/sys/windows"
 )
@@ -39,7 +40,7 @@ type Record struct {
 	USN                       USN
 	TimeStamp                 time.Time
 	Reason                    Reason
-	SourceInfo                uint32
+	SourceInfo                usnsource.Info
 	FileAttributes            fileattr.Value
 	FileName                  string
 }
@@ -158,7 +159,7 @@ type RawRecordV2 struct {
 	USN                       USN
 	TimeStamp                 windows.Filetime
 	Reason                    Reason
-	SourceInfo                uint32
+	SourceInfo                usnsource.Info
 	SecurityID                uint32
 	FileAttributes            fileattr.Value
 	FileNameLength            uint16
@@ -174,7 +175,7 @@ type RawRecordV3 struct {
 	USN                       USN
 	TimeStamp                 windows.Filetime
 	Reason                    Reason
-	SourceInfo                uint32
+	SourceInfo                usnsource.Info
 	SecurityID                uint32
 	FileAttributes            fileattr.Value
 	FileNameLength            uint16
@@ -189,7 +190,7 @@ type RawRecordV4 struct {
 	ParentFileReferenceNumber [16]byte
 	USN                       USN
 	Reason                    Reason
-	SourceInfo                uint32
+	SourceInfo                usnsource.Info
 	RemainingExtents          uint32
 	NumberOfExtents           uint16
 	ExtentSize                uint16
