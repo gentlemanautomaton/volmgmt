@@ -56,8 +56,11 @@ func (j *Journal) Query() (data RawJournalData, err error) {
 }
 
 // Cursor returns a new cursor for the journal.
-func (j *Journal) Cursor(reasonMask Reason) (*Cursor, error) {
-	return NewCursorWithHandle(j.h.Clone(), reasonMask)
+//
+// If filer is non-nil, it will be used to return records with a populated
+// path field.
+func (j *Journal) Cursor(reasonMask Reason, filer Filer) (*Cursor, error) {
+	return NewCursorWithHandle(j.h.Clone(), reasonMask, filer)
 }
 
 // Monitor returns a new monitor for the journal.

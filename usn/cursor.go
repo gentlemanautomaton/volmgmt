@@ -31,12 +31,16 @@ type Cursor struct {
 	h          *hsync.Handle
 	usn        USN
 	reasonMask Reason
+	filer      Filer
 	// TODO: Consider adding some sort of buffer (or let the user provide one)
 }
 
 // NewCursor returns a USN change journal cursor for the volume described by
-// path.
-func NewCursor(path string, reasonMask Reason) (cursor *Cursor, err error) {
+// path. Only records matching the provided reason mask will be returned.
+//
+// If filer is non-nil, it will be used to return records with a populated
+// path field.
+func NewCursor(path string, reasonMask Reason, filer Filer) (cursor *Cursor, err error) {
 	const (
 		access = syscall.GENERIC_READ
 		mode   = syscall.FILE_SHARE_READ | syscall.FILE_SHARE_WRITE
@@ -47,7 +51,7 @@ func NewCursor(path string, reasonMask Reason) (cursor *Cursor, err error) {
 		return nil, err
 	}
 
-	return NewCursorWithHandle(hsync.New(h), reasonMask)
+	return NewCursorWithHandle(hsync.New(h), reasonMask, filer)
 }
 
 // NewCursorWithHandle returns a USN Journal cursor for the volume with the
@@ -56,7 +60,7 @@ func NewCursor(path string, reasonMask Reason) (cursor *Cursor, err error) {
 // When the cursor is closed its associated handle will also be closed. When
 // providing an existing handle that will be used elsewhere be sure to
 // clone it first.
-func NewCursorWithHandle(handle *hsync.Handle, reasonMask Reason) (*Cursor, error) {
+func NewCursorWithHandle(handle *hsync.Handle, reasonMask Reason, filer Filer) (*Cursor, error) {
 	data, err := QueryJournal(handle.Handle())
 	if err != nil {
 		return nil, err
@@ -66,6 +70,7 @@ func NewCursorWithHandle(handle *hsync.Handle, reasonMask Reason) (*Cursor, erro
 		h:          handle,
 		data:       data,
 		reasonMask: reasonMask,
+		filer:      filer,
 	}, nil
 }
 
@@ -153,6 +158,17 @@ func (c *Cursor) Next(buffer []byte) (records []Record, err error) {
 		if err != nil {
 			return
 		}
+
+		if c.filer != nil && !record.ParentFileReferenceNumber.IsZero() {
+			record.Path = record.FileName
+			parents, pErr := c.filer.Parents(record)
+			if pErr == nil {
+				for p := range parents {
+					record.Path = parents[p].FileName + `\` + record.Path
+				}
+			}
+		}
+
 		records = append(records, record)
 
 		n -= int(record.RecordLength)

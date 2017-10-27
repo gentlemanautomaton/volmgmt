@@ -37,6 +37,7 @@ var (
 
 // Monitor facilitates monitoring of USN journals.
 type Monitor struct {
+	mft    *MFT    // Used by m.run without acquiring a lock when it's running
 	cursor *Cursor // Used by m.run without acquiring a lock when it's running
 
 	mutex     sync.RWMutex
@@ -106,9 +107,13 @@ func (m *Monitor) Run(start USN, interval time.Duration, reasonMask Reason) erro
 		interval = MinimumPollingInterval
 	}
 
+	if m.mft == nil {
+		m.mft = NewMFTWithHandle(m.h.Clone())
+	}
+
 	if m.cursor == nil {
 		var err error
-		m.cursor, err = NewCursorWithHandle(m.h.Clone(), reasonMask)
+		m.cursor, err = NewCursorWithHandle(m.h.Clone(), reasonMask, m.mft.File)
 		if err != nil {
 			return fmt.Errorf("unable to created cursor for volume handle: %v", err)
 		}
@@ -209,8 +214,15 @@ func (m *Monitor) Close() error {
 		m.sigstop = nil
 		m.stopped = nil
 	}
+
 	if m.cursor != nil {
 		m.cursor.Close()
+		m.cursor = nil
+	}
+
+	if m.mft != nil {
+		m.mft.Close()
+		m.mft = nil
 	}
 
 	for _, listener := range m.listeners {

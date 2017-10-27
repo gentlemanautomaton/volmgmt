@@ -43,6 +43,7 @@ type Record struct {
 	SourceInfo                usnsource.Info
 	FileAttributes            fileattr.Value
 	FileName                  string
+	Path                      string
 }
 
 // UnmarshalBinary attempts to parse a single record from the given data.
