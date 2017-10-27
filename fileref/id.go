@@ -76,6 +76,12 @@ func (id ID) IsInt64() bool {
 	return upper == 0
 }
 
+// IsZero returns true if the file identifier is zero.
+func (id ID) IsZero() bool {
+	upper, lower := id.Split()
+	return upper == 0 && lower == 0
+}
+
 // String returns a string representation of the file identifier.
 func (id ID) String() string {
 	if id.IsInt64() {
