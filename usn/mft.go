@@ -45,9 +45,6 @@ func NewMFTWithHandle(handle *hsync.Handle) *MFT {
 }
 
 // File attempts to locate the file with the given ID in the master file table.
-//
-// Find will look for MFT records with an update sequence number between low
-// and high, inclusive.
 func (mft *MFT) File(id fileref.ID) (record Record, err error) {
 	if !id.IsInt64() {
 		err = errors.New("unable to search for files with 128-bit reference numbers")
@@ -91,7 +88,7 @@ func (mft *MFT) Enumerate(low, high USN) (*Enumerator, error) {
 	return NewEnumeratorWithHandle(mft.h.Clone(), low, high)
 }
 
-// Close releases any resources consumed by the journal.
+// Close releases any resources consumed by the MFT.
 func (mft *MFT) Close() {
 	mft.h.Close()
 }
