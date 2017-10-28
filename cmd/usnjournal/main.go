@@ -103,12 +103,28 @@ func run(feed <-chan usn.Record, location *time.Location, include, exclude *rege
 	defer close(done)
 
 	for record := range feed {
-		if include != nil && !include.MatchString(record.FileName) {
-			continue
+		if include != nil {
+			if record.Path == "" {
+				if !include.MatchString(record.FileName) {
+					continue
+				}
+			} else {
+				if !include.MatchString(record.Path) {
+					continue
+				}
+			}
 		}
 
-		if exclude != nil && exclude.MatchString(record.FileName) {
-			continue
+		if exclude != nil {
+			if record.Path == "" {
+				if exclude.MatchString(record.FileName) {
+					continue
+				}
+			} else {
+				if exclude.MatchString(record.Path) {
+					continue
+				}
+			}
 		}
 
 		id := record.FileReferenceNumber.String()
