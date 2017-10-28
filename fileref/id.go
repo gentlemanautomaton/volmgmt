@@ -82,6 +82,36 @@ func (id ID) IsZero() bool {
 	return upper == 0 && lower == 0
 }
 
+// BigEndian returns the ID as a sequence of bytes in big-endian byte order.
+func (id ID) BigEndian() (value [16]byte) {
+	return [16]byte(id)
+}
+
+// LittleEndian returns the ID as a sequence of bytes in little-endian byte
+// order.
+func (id ID) LittleEndian() (value [16]byte) {
+	for i := 0; i < 16; i++ {
+		value[i] = id[15-i]
+	}
+	return
+}
+
+// Descriptor returns a descriptor for the file id.
+func (id ID) Descriptor() Descriptor {
+	if id.IsInt64() {
+		return Descriptor{
+			Size: 16,
+			Type: FileType,
+			Data: id.LittleEndian(),
+		}
+	}
+	return Descriptor{
+		Size: 24,
+		Type: ExtendedFileIDType,
+		Data: id.LittleEndian(),
+	}
+}
+
 // String returns a string representation of the file identifier.
 func (id ID) String() string {
 	if id.IsInt64() {
