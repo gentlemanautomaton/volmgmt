@@ -41,6 +41,7 @@ type Record struct {
 	TimeStamp                 time.Time
 	Reason                    Reason
 	SourceInfo                usnsource.Info
+	SecurityID                uint32 // This always seems to be zero, and is probably useless
 	FileAttributes            fileattr.Value
 	FileName                  string
 	Path                      string
@@ -84,6 +85,7 @@ func (r *Record) unmarshal2(data []byte) error {
 	r.TimeStamp = time.Unix(0, raw.TimeStamp.Nanoseconds())
 	r.Reason = raw.Reason
 	r.SourceInfo = raw.SourceInfo
+	r.SecurityID = raw.SecurityID
 	r.FileAttributes = raw.FileAttributes
 	return r.unmarshalFileName(data, raw.FileNameOffset, raw.FileNameLength)
 }
@@ -100,6 +102,7 @@ func (r *Record) unmarshal3(data []byte) error {
 	r.TimeStamp = time.Unix(0, raw.TimeStamp.Nanoseconds())
 	r.Reason = raw.Reason
 	r.SourceInfo = raw.SourceInfo
+	r.SecurityID = raw.SecurityID
 	r.FileAttributes = raw.FileAttributes
 	return r.unmarshalFileName(data, raw.FileNameOffset, raw.FileNameLength)
 }
