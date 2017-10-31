@@ -14,6 +14,13 @@ import (
 )
 
 const (
+	// MaxRecordSize is the maximum record size that will be parsed. It is
+	// an arbitrary number that should be sufficiently large to accept any valid
+	// change journal record.
+	MaxRecordSize = 12288
+)
+
+const (
 	recordHeaderSize = 8
 	recordV2Size     = 56
 	recordV3Size     = 60
@@ -21,13 +28,25 @@ const (
 )
 
 var (
-	// ErrTruncatedRecord is returned when the data buffer containing a USN
+	// ErrTruncatedRecord is returned when the data buffer containing a
 	// record appears to have been truncated.
 	ErrTruncatedRecord = errors.New("USN record data was truncated")
 
-	// ErrInvalidRecordLength is returned when the data buffer containing a USN
-	// record contains has an invalid record length value.
-	ErrInvalidRecordLength = errors.New("USN record length is invalid (possible data corruption)")
+	// ErrRecordLengthZero is returned when a record specifies a length of
+	// zero.
+	ErrRecordLengthZero = errors.New("USN record length is zero (possible data corruption)")
+
+	// ErrRecordLengthTooSmall is returned when a record specifies a length
+	// that is too small to hold the record data.
+	ErrRecordLengthTooSmall = errors.New("USN record length is too small (possible data corruption)")
+
+	// ErrRecordLengthExceedsMax is returned when a record specifies a length
+	// that exceeds MaxRecordSize.
+	ErrRecordLengthExceedsMax = errors.New("USN record length exceeds maximum (possible data corruption)")
+
+	// ErrFileNameExceedsBoundary is returned when a record specifies a file
+	// name data range that exceeds the boundaries of the record.
+	ErrFileNameExceedsBoundary = errors.New("USN record file name data exceeds the record boundary")
 )
 
 // Record represents a change journal record.
@@ -60,7 +79,11 @@ func (r *Record) UnmarshalBinary(data []byte) error {
 	r.MinorVersion = hdr.MinorVersion
 
 	if r.RecordLength == 0 {
-		return ErrInvalidRecordLength
+		return ErrRecordLengthZero
+	}
+
+	if r.RecordLength > MaxRecordSize {
+		return ErrRecordLengthExceedsMax
 	}
 
 	switch hdr.MajorVersion {
@@ -115,7 +138,7 @@ func (r *Record) validateSize(data []byte, expected uint32) error {
 		return ErrTruncatedRecord
 	}
 	if r.RecordLength < expected {
-		return ErrInvalidRecordLength
+		return ErrRecordLengthTooSmall
 	}
 	return nil
 }
@@ -132,7 +155,7 @@ func (r *Record) unmarshalFileName(data []byte, offset, length uint16) error {
 		return ErrTruncatedRecord
 	}
 	if start > recordSize || end > recordSize {
-		return ErrInvalidRecordLength
+		return ErrFileNameExceedsBoundary
 	}
 	r.FileName = utf16BytesToString(data[start:end])
 	return nil
