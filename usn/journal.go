@@ -59,8 +59,33 @@ func (j *Journal) Query() (data RawJournalData, err error) {
 //
 // If filer is non-nil, it will be used to return records with a populated
 // path field.
-func (j *Journal) Cursor(reasonMask Reason, filer Filer) (*Cursor, error) {
-	return NewCursorWithHandle(j.h.Clone(), reasonMask, filer)
+func (j *Journal) Cursor(processor Processor, reasonMask Reason, filter Filter, filer Filer) (*Cursor, error) {
+	return NewCursorWithHandle(j.h.Clone(), processor, reasonMask, filter, filer)
+}
+
+// MFT returns an MFT for the journal.
+func (j *Journal) MFT() *MFT {
+	return NewMFTWithHandle(j.h.Clone())
+}
+
+// Cache builds up a cache of MFT records matching the given filter with USN
+// values between low and high, inclusive.
+func (j *Journal) Cache(filter Filter, low, high USN) (*Cache, error) {
+	mft := j.MFT()
+	defer mft.Close()
+
+	iter, err := mft.Enumerate(filter, low, high)
+	if err != nil {
+		return nil, err
+	}
+	defer iter.Close()
+
+	cache := NewCache()
+	err = cache.ReadFrom(iter)
+	if err != nil {
+		return nil, err
+	}
+	return cache, nil
 }
 
 // Monitor returns a new monitor for the journal.
