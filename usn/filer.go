@@ -1,6 +1,8 @@
 package usn
 
-import "github.com/gentlemanautomaton/volmgmt/fileref"
+import (
+	"github.com/gentlemanautomaton/volmgmt/fileref"
+)
 
 // Filer returns master file table records by looking up file identifiers.
 type Filer func(id fileref.ID) (Record, error)
@@ -12,6 +14,9 @@ func (f Filer) Parents(r Record) (records []Record, err error) {
 		last := r.ParentFileReferenceNumber
 		r, err = f(r.ParentFileReferenceNumber)
 		if err != nil || r.ParentFileReferenceNumber == last {
+			if err == ErrNotFound {
+				err = nil
+			}
 			return
 		}
 		records = append(records, r)

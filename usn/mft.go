@@ -84,8 +84,10 @@ func (mft *MFT) File(id fileref.ID) (record Record, err error) {
 
 // Enumerate returns a new enumerator for the master file table. It will
 // return records with update sequence numbers between low and high, inclusive.
-func (mft *MFT) Enumerate(low, high USN) (*Enumerator, error) {
-	return NewEnumeratorWithHandle(mft.h.Clone(), low, high)
+//
+// To enumerate all records within the MFT, provide Min and Max as values.
+func (mft *MFT) Enumerate(filter Filter, low, high USN) (*Enumerator, error) {
+	return NewEnumeratorWithHandle(mft.h.Clone(), filter, low, high)
 }
 
 // Close releases any resources consumed by the MFT.
