@@ -10,17 +10,20 @@ import (
 )
 
 // Enumerator reads records from a master file table.
+//
+// TODO: Attempt to merge Enumerator and Cursor into one type.
 type Enumerator struct {
-	data RawJournalData
-	h    *hsync.Handle
-	pos  int64 // File reference number or USN
-	low  USN
-	high USN
+	data   RawJournalData
+	h      *hsync.Handle
+	pos    int64 // File reference number or USN
+	filter Filter
+	low    USN
+	high   USN
 }
 
 // NewEnumerator returns a master file table enumerator for the volume described
 // by path.
-func NewEnumerator(path string, low, high USN) (enumerator *Enumerator, err error) {
+func NewEnumerator(path string, filter Filter, low, high USN) (enumerator *Enumerator, err error) {
 	const (
 		access = syscall.GENERIC_READ
 		mode   = syscall.FILE_SHARE_READ | syscall.FILE_SHARE_WRITE
@@ -31,7 +34,7 @@ func NewEnumerator(path string, low, high USN) (enumerator *Enumerator, err erro
 		return nil, err
 	}
 
-	return NewEnumeratorWithHandle(hsync.New(h), low, high)
+	return NewEnumeratorWithHandle(hsync.New(h), filter, low, high)
 }
 
 // NewEnumeratorWithHandle returns a master file table enumerator for the
@@ -40,17 +43,18 @@ func NewEnumerator(path string, low, high USN) (enumerator *Enumerator, err erro
 // When the enumerator is closed its associated handle will also be closed. When
 // providing an existing handle that will be used elsewhere be sure to
 // clone it first.
-func NewEnumeratorWithHandle(handle *hsync.Handle, low, high USN) (*Enumerator, error) {
+func NewEnumeratorWithHandle(handle *hsync.Handle, filter Filter, low, high USN) (*Enumerator, error) {
 	data, err := QueryJournal(handle.Handle())
 	if err != nil {
 		return nil, err
 	}
 
 	return &Enumerator{
-		h:    handle,
-		data: data,
-		low:  low,
-		high: high,
+		h:      handle,
+		data:   data,
+		filter: filter,
+		low:    low,
+		high:   high,
 	}, nil
 }
 
@@ -112,7 +116,9 @@ func (e *Enumerator) Next(buffer []byte) (records []Record, err error) {
 			return
 		}
 
-		records = append(records, record)
+		if e.filter.Match(record) {
+			records = append(records, record)
+		}
 
 		n -= int(record.RecordLength)
 		if n < recordV2Size {
