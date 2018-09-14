@@ -92,6 +92,9 @@ func (e *Enumerator) Read(p []byte) (n int, err error) {
 			return 0, io.EOF
 		}
 	}
+	if err == syscall.ERROR_HANDLE_EOF {
+		return 0, io.EOF
+	}
 	return
 }
 
