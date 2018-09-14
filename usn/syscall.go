@@ -8,7 +8,8 @@ import (
 	"github.com/gentlemanautomaton/volmgmt/fsctl"
 )
 
-// See https://www.microsoft.com/msj/1099/journal2/journal2.aspx
+// See:       https://www.microsoft.com/msj/1099/journal2/journal2.aspx
+// Archived: https://web.archive.org/web/20171018212725/https://www.microsoft.com/msj/1099/journal2/journal2.aspx
 
 // CreateJournal will create or modify a change journal on the file system
 // volume represented by the provided handle.
