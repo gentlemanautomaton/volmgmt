@@ -15,6 +15,14 @@ import (
 func scan(path string, settings Settings) {
 	fmt.Printf("Path: \"%s\"\n", path)
 
+	if settings.Include != nil {
+		fmt.Printf("Include: %s\n", settings.Include)
+	}
+
+	if settings.Exclude != nil {
+		fmt.Printf("Exclude: %s\n", settings.Exclude)
+	}
+
 	vol, err := volume.New(path)
 	if err != nil {
 		fmt.Printf("Unable to read \"%s\": %v\n", err)
