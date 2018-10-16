@@ -15,12 +15,8 @@ import (
 func scan(path string, settings Settings) {
 	fmt.Printf("Path: \"%s\"\n", path)
 
-	if settings.Include != nil {
-		fmt.Printf("Include: %s\n", settings.Include)
-	}
-
-	if settings.Exclude != nil {
-		fmt.Printf("Exclude: %s\n", settings.Exclude)
+	if summary := settings.Summary(); summary != "" {
+		fmt.Printf(summary)
 	}
 
 	vol, err := volume.New(path)
@@ -60,12 +56,18 @@ func scan(path string, settings Settings) {
 		}
 	}
 
-	cursor, cursorErr := journal.Cursor(cacheUpdater, settings.Reason, nil, cache.Filer)
+	filter := buildFilter(settings)
+
+	cursor, cursorErr := journal.Cursor(cacheUpdater, settings.Reason, filter, cache.Filer)
 	if cursorErr != nil {
 		fmt.Printf("Unable to create USN journal cursor: %v\n", cursorErr)
 		return
 	}
 	defer cursor.Close()
+	defer func() { printStats(cursor.Stats()) }()
+	defer fmt.Println("--------")
+
+	fmt.Println("--------")
 
 	buffer := make([]byte, 262144)
 	i := 0
@@ -79,30 +81,6 @@ func scan(path string, settings Settings) {
 		}
 
 		for _, record := range records {
-			if settings.Include != nil {
-				if record.Path == "" {
-					if !settings.Include.MatchString(record.FileName) {
-						continue
-					}
-				} else {
-					if !settings.Include.MatchString(record.Path) {
-						continue
-					}
-				}
-			}
-
-			if settings.Exclude != nil {
-				if record.Path == "" {
-					if settings.Exclude.MatchString(record.FileName) {
-						continue
-					}
-				} else {
-					if settings.Exclude.MatchString(record.Path) {
-						continue
-					}
-				}
-			}
-
 			id := record.FileReferenceNumber.String()
 			when := record.TimeStamp.In(settings.Location).Format("2006-01-02 15:04:05.000000 MST")
 			attr := record.FileAttributes.Join("", fileattr.FormatCode)
@@ -124,6 +102,16 @@ func printVolume(vol *volume.Volume) {
 	fmt.Printf("NT Namespace Device Path: %s\n", strOrErr(devicePath, devicePathErr))
 	fmt.Printf("Device Information: Number %d, Partition %d, Type %d\n", vol.DeviceNumber(), vol.PartitionNumber(), vol.DeviceType())
 	fmt.Printf("Device Description: Removable: %t, Vendor: %s, Product: %s, Revision: %s, OS S/N: %s\n", vol.RemovableMedia(), vol.VendorID(), vol.ProductID(), vol.ProductRevision(), vol.SerialNumber())
+}
+
+func printStats(total, filtered usn.Stats) {
+	var percent float32
+	if total.Records > 0 {
+		percent = float32(filtered.Records) / float32(total.Records)
+	}
+	fmt.Printf("Matched:     %d/%d records (%.4f%%)\n", filtered.Records, total.Records, percent)
+	fmt.Printf("First Match: %s\n", filtered.First)
+	fmt.Printf("Last Match:  %s\n", filtered.Last)
 }
 
 func strOrErr(s string, err error) string {

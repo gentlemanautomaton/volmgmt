@@ -31,11 +31,17 @@ func main() {
 			include    *regexp.Regexp
 			excludeStr string
 			exclude    *regexp.Regexp
+			afterStr   string
+			after      time.Time
+			beforeStr  string
+			before     time.Time
 		)
 
 		flag.StringVar(&reasonStr, "t", "*", "journal record types to include (comma-separated)")
 		flag.StringVar(&includeStr, "include", "", "regular expression for file match (inclusion)")
 		flag.StringVar(&excludeStr, "exclude", "", "regular expression for file match (exclusion)")
+		flag.StringVar(&afterStr, "after", "", "only show entries at or after this time")
+		flag.StringVar(&beforeStr, "before", "", "only show entries at or before this time")
 		flag.Parse()
 
 		if flag.NArg() == 0 {
@@ -47,19 +53,23 @@ func main() {
 			usage(fmt.Sprintf("%v", err))
 		}
 
-		include = compileRegex(includeStr)
-		exclude = compileRegex(excludeStr)
-
 		location, err := time.LoadLocation("Local")
 		if err != nil {
 			fmt.Printf("Unable to load local timezone information: %v\n", err)
 			os.Exit(1)
 		}
 
+		include = compileRegex(includeStr)
+		exclude = compileRegex(excludeStr)
+		after = parseTime(afterStr, location)
+		before = parseTime(beforeStr, location)
+
 		settings = Settings{
 			Reason:   reason,
 			Include:  include,
 			Exclude:  exclude,
+			After:    after,
+			Before:   before,
 			Location: location,
 		}
 	}
