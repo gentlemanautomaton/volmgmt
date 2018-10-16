@@ -107,9 +107,9 @@ func printVolume(vol *volume.Volume) {
 func printStats(total, filtered usn.Stats) {
 	var percent float32
 	if total.Records > 0 {
-		percent = float32(filtered.Records) / float32(total.Records)
+		percent = float32(filtered.Records) / float32(total.Records) * 100
 	}
-	fmt.Printf("Matched:     %d/%d records (%.4f%%)\n", filtered.Records, total.Records, percent)
+	fmt.Printf("Matched:     %d/%d USN journal records (%.2f%%)\n", filtered.Records, total.Records, percent)
 	fmt.Printf("First Match: %s\n", filtered.First)
 	fmt.Printf("Last Match:  %s\n", filtered.Last)
 }
