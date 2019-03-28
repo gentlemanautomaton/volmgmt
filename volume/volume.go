@@ -209,6 +209,11 @@ func (v *Volume) Journal() *usn.Journal {
 	return usn.NewJournalWithHandle(v.h.Clone())
 }
 
+// MFT returns an MFT for the volume.
+func (v *Volume) MFT() *usn.MFT {
+	return usn.NewMFTWithHandle(v.h.Clone())
+}
+
 // Close releases any resources consumed by the volume.
 func (v *Volume) Close() error {
 	return v.h.Close()
