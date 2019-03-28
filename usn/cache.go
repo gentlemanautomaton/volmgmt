@@ -76,6 +76,26 @@ func (c *Cache) Filer(frn fileref.ID) (record Record, err error) {
 	return
 }
 
+// Records returns a slice of all records in the cache. The order of the
+// returned records is unspecified.
+func (c *Cache) Records() []Record {
+	filer := Filer(c.Filer)
+	records := make([]Record, 0, len(c.m))
+	for _, record := range c.m {
+		record.Path = record.FileName
+		if !record.ParentFileReferenceNumber.IsZero() {
+			parents, pErr := filer.Parents(record)
+			if pErr == nil {
+				for p := range parents {
+					record.Path = parents[p].FileName + `\` + record.Path
+				}
+			}
+		}
+		records = append(records, record)
+	}
+	return records
+}
+
 /*
 // FileTable describes a mutable repository of file table records.
 type FileTable interface {
