@@ -21,7 +21,7 @@ func scan(path string, settings Settings) {
 
 	vol, err := volume.New(path)
 	if err != nil {
-		fmt.Printf("Unable to read \"%s\": %v\n", err)
+		fmt.Printf("Unable to read \"%s\": %v\n", path, err)
 		return
 	}
 	defer vol.Close()
