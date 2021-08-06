@@ -100,7 +100,7 @@ func (id ID) LittleEndian() (value [16]byte) {
 func (id ID) Descriptor() Descriptor {
 	if id.IsInt64() {
 		return Descriptor{
-			Size: 16,
+			Size: 24,
 			Type: FileType,
 			Data: id.LittleEndian(),
 		}
