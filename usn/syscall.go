@@ -11,10 +11,21 @@ import (
 // See:       https://www.microsoft.com/msj/1099/journal2/journal2.aspx
 // Archived: https://web.archive.org/web/20171018212725/https://www.microsoft.com/msj/1099/journal2/journal2.aspx
 
-// CreateJournal will create or modify a change journal on the file system
-// volume represented by the provided handle.
-func CreateJournal(handle syscall.Handle) (err error) {
-	return errors.New("Not yet implemented")
+// CreateJournal will create a change journal on the file system volume
+// represented by the provided handle and the parameters maximum journal size
+// and allocation delta. If the parameters are zero, the journal will be created
+// with defaults
+func CreateJournal(handle syscall.Handle, maxSize, allocDelta uint64) (err error) {
+	var length uint32
+	var options = struct {
+		MaximumSize     uint64
+		AllocationDelta uint64
+	}{maxSize, allocDelta}
+
+	err = syscall.DeviceIoControl(handle, fsctl.CreateUSNJournal,
+		(*byte)(unsafe.Pointer(&options)), uint32(unsafe.Sizeof(options)),
+		nil, 0, &length, nil)
+	return
 }
 
 // DeleteJournal will delete a change journal on the file system volume
