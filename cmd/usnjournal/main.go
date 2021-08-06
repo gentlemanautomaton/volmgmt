@@ -93,21 +93,21 @@ func main() {
 			cache.Set(record)
 		}
 	}
-	err = monitor.Run(data.NextUSN, time.Millisecond*100, reason, cacheUpdater, nil, cache.Filer)
-	if err != nil {
-		fmt.Printf("Unable to monitor USN Journal: %v\n", err)
-		os.Exit(2)
-	}
+	errC := monitor.Run(data.NextUSN, time.Millisecond*100, reason, cacheUpdater, nil, cache.Filer)
 
 	done := make(chan struct{})
 	go run(feed, location, include, exclude, done)
 
-	ch := make(chan os.Signal)
+	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 
 	select {
 	case <-ch:
 	case <-done:
+	case err = <-errC:
+		if err != nil {
+			fmt.Printf("monitor USN Journal: %v\n", err)
+		}
 	}
 }
 
