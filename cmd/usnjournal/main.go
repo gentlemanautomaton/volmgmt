@@ -13,6 +13,7 @@ import (
 	"github.com/gentlemanautomaton/volmgmt/fileattr"
 	"github.com/gentlemanautomaton/volmgmt/usn"
 	"github.com/gentlemanautomaton/volmgmt/usnfilter"
+	"golang.org/x/sys/windows"
 )
 
 func usage(errmsg string) {
@@ -66,6 +67,11 @@ func main() {
 	defer journal.Close()
 
 	data, err := journal.Query()
+	if err == windows.ERROR_JOURNAL_NOT_ACTIVE {
+		fmt.Print("USN Journal is not active. Creating new journal...\n")
+		err = journal.Create(0, 0)
+	}
+
 	if err != nil {
 		fmt.Printf("Unable to access USN Journal: %v\n", err)
 		os.Exit(2)

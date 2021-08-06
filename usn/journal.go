@@ -43,12 +43,11 @@ func NewJournalWithHandle(handle *hsync.Handle) *Journal {
 	}
 }
 
-// Create will either
-/*
-func (j *Journal) Create() {
-	volumeapi.CreateUSNJournal(j.handle)
+// Create creates a new USN journal using the parameters for max size and
+// allocation delta. Pass zero parameters to create a journal with defaults.
+func (j *Journal) Create(maxSize, allocDelta uint64) error {
+	return CreateJournal(j.h.Handle(), maxSize, allocDelta)
 }
-*/
 
 // Query returns information about the current condition of the change journal.
 func (j *Journal) Query() (data RawJournalData, err error) {
