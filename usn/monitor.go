@@ -90,17 +90,23 @@ func NewMonitorWithHandle(handle *hsync.Handle) *Monitor {
 // specified by start. If start is zero the monitor will read from the
 // beginning of the journal.
 //
-// If the monitor has already been started an error will be returned.
-func (m *Monitor) Run(start USN, interval time.Duration, reasonMask Reason, processor Processor, filter Filter, filer Filer) error {
+// When the monitor stops, the returned channel is closed. If the monitor has
+// already been started, or stops due to an error, the error will be sent to
+// the channel.
+func (m *Monitor) Run(start USN, interval time.Duration, reasonMask Reason, processor Processor, filter Filter, filer Filer) <-chan error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
+	errC := make(chan error, 1)
+
 	if m.closed {
-		return ErrClosed
+		errC <- ErrClosed
+		return errC
 	}
 
 	if m.sigstop != nil {
-		return ErrRunning
+		errC <- ErrRunning
+		return errC
 	}
 
 	if interval < MinimumPollingInterval {
@@ -115,7 +121,8 @@ func (m *Monitor) Run(start USN, interval time.Duration, reasonMask Reason, proc
 		var err error
 		m.cursor, err = NewCursorWithHandle(m.h.Clone(), processor, reasonMask, filter, filer)
 		if err != nil {
-			return fmt.Errorf("unable to created cursor for volume handle: %v", err)
+			errC <- fmt.Errorf("unable to create cursor for volume handle: %v", err)
+			return errC
 		}
 	}
 
@@ -124,12 +131,15 @@ func (m *Monitor) Run(start USN, interval time.Duration, reasonMask Reason, proc
 	m.sigstop = make(chan struct{})
 	m.stopped = make(chan struct{})
 
-	go m.run(interval, m.sigstop, m.stopped)
+	go func() {
+		errC <- m.run(interval, m.sigstop, m.stopped)
+		close(errC)
+	}()
 
-	return nil
+	return errC
 }
 
-func (m *Monitor) run(interval time.Duration, sigstop, stopped chan struct{}) {
+func (m *Monitor) run(interval time.Duration, sigstop, stopped chan struct{}) error {
 	defer close(stopped)
 
 	var (
@@ -140,7 +150,7 @@ func (m *Monitor) run(interval time.Duration, sigstop, stopped chan struct{}) {
 	for {
 		select {
 		case <-sigstop:
-			return
+			return nil
 		default:
 		}
 
@@ -166,9 +176,8 @@ func (m *Monitor) run(interval time.Duration, sigstop, stopped chan struct{}) {
 		default:
 			// FIXME: Handle expected but infrequent errors, such as journal wraps
 
-			// FIXME: Report non-nil errors in some way?
 			//fmt.Printf("monitor cursor error: %v\n", err)
-			return
+			return err
 		}
 	}
 }
