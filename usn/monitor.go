@@ -91,7 +91,7 @@ func NewMonitorWithHandle(handle *hsync.Handle) *Monitor {
 // beginning of the journal.
 //
 // If the monitor has already been started an error will be returned.
-func (m *Monitor) Run(start USN, interval time.Duration, reasonMask Reason) error {
+func (m *Monitor) Run(start USN, interval time.Duration, reasonMask Reason, processor Processor, filter Filter, filer Filer) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -113,7 +113,7 @@ func (m *Monitor) Run(start USN, interval time.Duration, reasonMask Reason) erro
 
 	if m.cursor == nil {
 		var err error
-		m.cursor, err = NewCursorWithHandle(m.h.Clone(), reasonMask, m.mft.File)
+		m.cursor, err = NewCursorWithHandle(m.h.Clone(), processor, reasonMask, filter, filer)
 		if err != nil {
 			return fmt.Errorf("unable to created cursor for volume handle: %v", err)
 		}

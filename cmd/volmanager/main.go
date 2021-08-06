@@ -73,7 +73,8 @@ func main() {
 
 		fmt.Printf("USN Journal: Present, ID: %d, Next USN: %d, Supporting Versions: %d-%d\n", journalData.JournalID, journalData.NextUSN, journalData.MinSupportedMajorVersion, journalData.MaxSupportedMajorVersion)
 
-		cursor, cursorErr := journal.Cursor(usn.ReasonFileCreate | usn.ReasonFileDelete)
+		cursor, cursorErr := journal.Cursor(nil, usn.ReasonFileCreate|usn.ReasonFileDelete,
+			nil, nil)
 		if cursorErr != nil {
 			fmt.Printf("Unable to create USN journal cursor: %v\n", cursorErr)
 			continue

@@ -12,6 +12,7 @@ import (
 
 	"github.com/gentlemanautomaton/volmgmt/fileattr"
 	"github.com/gentlemanautomaton/volmgmt/usn"
+	"github.com/gentlemanautomaton/volmgmt/usnfilter"
 )
 
 func usage(errmsg string) {
@@ -81,7 +82,18 @@ func main() {
 
 	feed := monitor.Listen(64) // Register the feed before starting the monitor
 
-	err = monitor.Run(data.NextUSN, time.Millisecond*100, reason)
+	cache, err := journal.Cache(usnfilter.IsDir, 0, data.NextUSN)
+	if err != nil {
+		fmt.Printf("Journal cache error: %v\n", err)
+		os.Exit(2)
+	}
+
+	cacheUpdater := func(record usn.Record) {
+		if usnfilter.IsDir(record) {
+			cache.Set(record)
+		}
+	}
+	err = monitor.Run(data.NextUSN, time.Millisecond*100, reason, cacheUpdater, nil, cache.Filer)
 	if err != nil {
 		fmt.Printf("Unable to monitor USN Journal: %v\n", err)
 		os.Exit(2)
