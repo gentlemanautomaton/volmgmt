@@ -48,11 +48,11 @@ func scan(ctx context.Context, path string, settings Settings) (summary Summary)
 	{
 		fmt.Printf("Scanning MFT...")
 		start := time.Now()
-		cache.ReadFrom(iter)
+		err = cache.ReadFrom(ctx, iter)
 		end := time.Now()
 		duration := end.Sub(start)
 		if err != nil {
-			fmt.Printf("failed: %v. Ran %s.\n", err, duration)
+			fmt.Printf(" failed: %v. Ran %s.\n", err, duration)
 			return
 		}
 		fmt.Printf(" done. Completed in %s.\n", duration)

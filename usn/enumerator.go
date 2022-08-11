@@ -66,10 +66,10 @@ func NewEnumeratorWithHandle(handle *hsync.Handle, filter Filter, low, high USN)
 func (e *Enumerator) Read(p []byte) (n int, err error) {
 	opts := RawEnumOptions{
 		StartFileReferenceNumber: e.pos,
-		Low:             e.low,
-		High:            e.high,
-		MinMajorVersion: 2,
-		MaxMajorVersion: 3,
+		Low:                      e.low,
+		High:                     e.high,
+		MinMajorVersion:          2,
+		MaxMajorVersion:          3,
 	}
 	length, err := EnumData(e.h.Handle(), opts, p)
 	n = int(length)
@@ -98,11 +98,12 @@ func (e *Enumerator) Read(p []byte) (n int, err error) {
 	return
 }
 
-// Next returns a slice of records from the master file table. It returns all unread
-// records that are available that can fit within the given buffer.
+// Next returns a slice of records from the master file table. It returns all
+// unread records that are available that can fit within the given buffer.
+// The returned records will be appended to data.
 //
 // If there are no more unread records err will be io.EOF.
-func (e *Enumerator) Next(buffer []byte) (records []Record, err error) {
+func (e *Enumerator) Next(buffer []byte, data []Record) (records []Record, err error) {
 	n, err := e.Read(buffer) // Advances the cursor
 	if err != nil {
 		return

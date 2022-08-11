@@ -1,6 +1,7 @@
 package usn
 
 import (
+	"context"
 	"errors"
 	"io"
 
@@ -18,9 +19,19 @@ type FileTable interface {
 }
 */
 
+// Calculate a reasonable buffer size for the cache to use when reading
+// data.
+//
+// Records are a variable size because file names are a variable length.
+// Here we use 32 UTF-16 characters as a rough estimate for the per-record
+// file name length.
+const fileNameSizeEstimate = 32 * 2
+const cacheBufferSize = 8 + (recordV3Size+fileNameSizeEstimate)*2048 // USN + 2048 records
+
 // Cache is a usn change journal cache.
 type Cache struct {
-	m map[fileref.ID]Record
+	m      map[fileref.ID]Record
+	buffer [cacheBufferSize]byte
 }
 
 // NewCache prepares a new cache object.
@@ -30,14 +41,17 @@ func NewCache() *Cache {
 	}
 }
 
-// ReadFrom reads records from iter and inserts them into mft. It returns
-// when the iterator returns an error or io.EOF.
-//
-// TODO: Add context?
-func (c *Cache) ReadFrom(iter Iter) error {
-	buffer := make([]byte, 262144)
+// ReadFrom reads records from iter and inserts them into the record cache.
+// It returns when the iterator returns an error or io.EOF, or if the given
+// context is cancelled.
+func (c *Cache) ReadFrom(ctx context.Context, iter Iter) error {
+	var records []Record
 	for {
-		records, err := iter.Next(buffer)
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		var err error
+		records, err = iter.Next(c.buffer[:], records[:0])
 		if err != nil {
 			if err == io.EOF {
 				return nil

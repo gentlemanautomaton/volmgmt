@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -90,7 +91,7 @@ func main() {
 
 	feed := monitor.Listen(64) // Register the feed before starting the monitor
 
-	cache, err := journal.Cache(usnfilter.IsDir, 0, data.NextUSN)
+	cache, err := journal.Cache(context.Background(), usnfilter.IsDir, 0, data.NextUSN)
 	if err != nil {
 		fmt.Printf("Journal cache error: %v\n", err)
 		os.Exit(2)

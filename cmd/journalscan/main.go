@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -77,6 +78,6 @@ func main() {
 	paths := flag.Args()
 
 	for _, path := range paths {
-		scan(path, settings)
+		scan(context.Background(), path, settings)
 	}
 }

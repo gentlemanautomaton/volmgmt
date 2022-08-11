@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -12,11 +13,11 @@ import (
 	"github.com/gentlemanautomaton/volmgmt/volume"
 )
 
-func scan(path string, settings Settings) {
+func scan(ctx context.Context, path string, settings Settings) {
 	fmt.Printf("Path: \"%s\"\n", path)
 
 	if summary := settings.Summary(); summary != "" {
-		fmt.Printf(summary)
+		fmt.Print(summary)
 	}
 
 	vol, err := volume.New(path)
@@ -41,7 +42,7 @@ func scan(path string, settings Settings) {
 
 	fmt.Printf("Scanning MFT...")
 	start := time.Now()
-	cache, err := journal.Cache(usnfilter.IsDir, 0, data.FirstUSN)
+	cache, err := journal.Cache(ctx, usnfilter.IsDir, 0, data.FirstUSN)
 	end := time.Now()
 	duration := end.Sub(start)
 	if err != nil {

@@ -1,6 +1,7 @@
 package usn
 
 import (
+	"context"
 	"syscall"
 
 	"github.com/gentlemanautomaton/volmgmt/hsync"
@@ -69,7 +70,7 @@ func (j *Journal) MFT() *MFT {
 
 // Cache builds up a cache of MFT records matching the given filter with USN
 // values between low and high, inclusive.
-func (j *Journal) Cache(filter Filter, low, high USN) (*Cache, error) {
+func (j *Journal) Cache(ctx context.Context, filter Filter, low, high USN) (*Cache, error) {
 	mft := j.MFT()
 	defer mft.Close()
 
@@ -80,7 +81,7 @@ func (j *Journal) Cache(filter Filter, low, high USN) (*Cache, error) {
 	defer iter.Close()
 
 	cache := NewCache()
-	err = cache.ReadFrom(iter)
+	err = cache.ReadFrom(ctx, iter)
 	if err != nil {
 		return nil, err
 	}
