@@ -37,8 +37,7 @@ var (
 
 // Monitor facilitates monitoring of USN journals.
 type Monitor struct {
-	mft    *MFT    // Used by m.run without acquiring a lock when it's running
-	cursor *Cursor // Used by m.run without acquiring a lock when it's running
+	mft *MFT // Used by m.run without acquiring a lock when it's running
 
 	mutex     sync.RWMutex
 	h         *hsync.Handle // Cloned for each cursor when it's created
@@ -117,30 +116,28 @@ func (m *Monitor) Run(start USN, interval time.Duration, reasonMask Reason, proc
 		m.mft = NewMFTWithHandle(m.h.Clone())
 	}
 
-	if m.cursor == nil {
-		var err error
-		m.cursor, err = NewCursorWithHandle(m.h.Clone(), processor, reasonMask, filter, filer)
-		if err != nil {
-			errC <- fmt.Errorf("unable to create cursor for volume handle: %v", err)
-			return errC
-		}
+	cursor, err := NewCursorWithHandle(m.h.Clone(), processor, reasonMask, filter, filer)
+	if err != nil {
+		errC <- fmt.Errorf("unable to create cursor for volume handle: %v", err)
+		return errC
 	}
 
-	m.cursor.usn = start
+	cursor.usn = start
 
 	m.sigstop = make(chan struct{})
 	m.stopped = make(chan struct{})
 
 	go func() {
-		errC <- m.run(interval, m.sigstop, m.stopped)
+		errC <- m.run(interval, cursor, m.sigstop, m.stopped)
 		close(errC)
 	}()
 
 	return errC
 }
 
-func (m *Monitor) run(interval time.Duration, sigstop, stopped chan struct{}) error {
+func (m *Monitor) run(interval time.Duration, cursor *Cursor, sigstop, stopped chan struct{}) error {
 	defer close(stopped)
+	defer cursor.Close()
 
 	var (
 		buffer [65536]byte
@@ -156,7 +153,7 @@ func (m *Monitor) run(interval time.Duration, sigstop, stopped chan struct{}) er
 
 		// TODO: Achieve a zero-allocating solution by updating cursor.Next to
 		// receive a buffer of records in addition to the buffer of bytes.
-		records, err := m.cursor.Next(p)
+		records, err := cursor.Next(p)
 
 		if len(records) > 0 {
 			m.broadcast(records)
@@ -222,11 +219,6 @@ func (m *Monitor) Close() error {
 		<-m.stopped
 		m.sigstop = nil
 		m.stopped = nil
-	}
-
-	if m.cursor != nil {
-		m.cursor.Close()
-		m.cursor = nil
 	}
 
 	if m.mft != nil {
