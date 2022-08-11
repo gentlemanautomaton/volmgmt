@@ -29,17 +29,19 @@ func main() {
 	}
 
 	var (
-		reasonStr  string
-		reason     usn.Reason
-		includeStr string
-		include    *regexp.Regexp
-		excludeStr string
-		exclude    *regexp.Regexp
+		reasonStr    string
+		reason       usn.Reason
+		includeStr   string
+		include      *regexp.Regexp
+		excludeStr   string
+		exclude      *regexp.Regexp
+		shouldCreate bool
 	)
 
 	flag.StringVar(&reasonStr, "t", "*", "journal record types to include (comma-separated)")
 	flag.StringVar(&includeStr, "i", "", "regular expression for file match (inclusion)")
 	flag.StringVar(&excludeStr, "e", "", "regular expression for file match (exclusion)")
+	flag.BoolVar(&shouldCreate, "c", false, "create a USN journal if one is not already present for the volume")
 	flag.Parse()
 
 	if flag.NArg() == 0 {
@@ -67,7 +69,7 @@ func main() {
 	defer journal.Close()
 
 	data, err := journal.Query()
-	if err == windows.ERROR_JOURNAL_NOT_ACTIVE {
+	if err == windows.ERROR_JOURNAL_NOT_ACTIVE && shouldCreate {
 		fmt.Print("USN Journal is not active. Creating new journal...\n")
 		err = journal.Create(0, 0)
 	}
