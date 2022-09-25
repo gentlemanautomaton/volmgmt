@@ -1,5 +1,9 @@
 package fileapi
 
+// FileInfoClass identifies the class of file information being accessed in
+// file system API calls.
+type FileInfoClass int
+
 // File information classes.
 const (
 	FileBasicInfo = iota
@@ -23,4 +27,8 @@ const (
 	FileIDInfo
 	FileIDExtdDirectoryInfo
 	FileIDExtdDirectoryRestartInfo
+	FileDispositionInfoEx
+	FileRenameInfoEx
+	FileCaseSensitiveInfo
+	FileNormalizedNameInfo
 )

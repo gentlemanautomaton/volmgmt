@@ -21,6 +21,7 @@ var (
 	procOpenFileByID                 = modkernel32.NewProc("OpenFileById")
 	procGetFileInformationByHandle   = modkernel32.NewProc("GetFileInformationByHandle")
 	procGetFileInformationByHandleEx = modkernel32.NewProc("GetFileInformationByHandleEx")
+	procSetFileInformationByHandle   = modkernel32.NewProc("SetFileInformationByHandle")
 )
 
 // OpenFileByID opens a file by its file ID. The file will be opened with the
@@ -60,7 +61,7 @@ func GetFileInformationByHandle(handle syscall.Handle) (info syscall.ByHandleFil
 		uintptr(unsafe.Pointer(&info)))
 	if r0 == 0 {
 		if e != 0 {
-			err = syscall.Errno(e)
+			err = e
 		} else {
 			err = syscall.EINVAL
 		}
@@ -71,7 +72,8 @@ func GetFileInformationByHandle(handle syscall.Handle) (info syscall.ByHandleFil
 // GetFileInformationByHandleEx retrieves information about the file
 // represented by the given system handle. The type of information returned
 // is determined by class.
-func GetFileInformationByHandleEx(handle syscall.Handle, class uint32, buffer []byte) (err error) {
+func GetFileInformationByHandleEx(handle syscall.Handle, info FileInfoUnmarshaler) (err error) {
+	buffer := make([]byte, info.Size())
 	if len(buffer) == 0 {
 		return ErrEmptyBuffer
 	}
@@ -79,15 +81,42 @@ func GetFileInformationByHandleEx(handle syscall.Handle, class uint32, buffer []
 	r0, _, e := syscall.SyscallN(
 		procGetFileInformationByHandleEx.Addr(),
 		uintptr(handle),
-		uintptr(class),
+		uintptr(info.Class()),
 		uintptr(unsafe.Pointer(&buffer[0])),
 		uintptr(len(buffer)))
 	if r0 == 0 {
 		if e != 0 {
-			err = syscall.Errno(e)
-		} else {
-			err = syscall.EINVAL
+			return e
 		}
+		return syscall.EINVAL
 	}
-	return
+
+	return info.UnmarshalBinary(buffer)
+}
+
+// SetFileInformationByHandle updates the file identified by the given system
+// handle. The type of information file information set is determined by
+// class.
+func SetFileInformationByHandle(handle syscall.Handle, info FileInfoMarshaler) (err error) {
+	data, err := info.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	if len(data) == 0 {
+		return ErrEmptyBuffer
+	}
+
+	r0, _, e := syscall.SyscallN(
+		procSetFileInformationByHandle.Addr(),
+		uintptr(handle),
+		uintptr(info.Class()),
+		uintptr(unsafe.Pointer(&data[0])),
+		uintptr(len(data)))
+	if r0 == 0 {
+		if e != 0 {
+			return e
+		}
+		return syscall.EINVAL
+	}
+	return nil
 }

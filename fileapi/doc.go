@@ -1,3 +1,3 @@
-// Package fileapi provides access to advanced function in the Windows file
+// Package fileapi provides access to advanced functions in the Windows file
 // system API.
 package fileapi
