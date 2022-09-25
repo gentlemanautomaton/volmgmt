@@ -19,6 +19,7 @@ var (
 	modkernel32 = windows.NewLazySystemDLL("kernel32.dll")
 
 	procOpenFileByID                 = modkernel32.NewProc("OpenFileById")
+	procReOpenFile                   = modkernel32.NewProc("ReOpenFile")
 	procGetFileInformationByHandle   = modkernel32.NewProc("GetFileInformationByHandle")
 	procGetFileInformationByHandleEx = modkernel32.NewProc("GetFileInformationByHandleEx")
 	procSetFileInformationByHandle   = modkernel32.NewProc("SetFileInformationByHandle")
@@ -44,6 +45,30 @@ func OpenFileByID(peer syscall.Handle, id fileref.ID, access, shareMode, flags u
 	if handle == syscall.InvalidHandle {
 		if e != 0 {
 			err = syscall.Errno(e)
+		} else {
+			err = syscall.EINVAL
+		}
+	}
+
+	return
+}
+
+// ReOpenFile opens a file by its file ID. The file will be opened with the
+// given access, share mode and flags.
+//
+// The handle provided can be to any file or on the volume, or to the volume
+// itself.
+func ReOpenFile(original syscall.Handle, access, shareMode, flags uint32) (handle syscall.Handle, err error) {
+	r0, _, e := syscall.SyscallN(
+		procReOpenFile.Addr(),
+		uintptr(original),
+		uintptr(access),
+		uintptr(shareMode),
+		uintptr(flags))
+	handle = syscall.Handle(r0)
+	if handle == syscall.InvalidHandle {
+		if e != 0 {
+			err = e
 		} else {
 			err = syscall.EINVAL
 		}
