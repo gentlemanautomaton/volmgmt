@@ -107,11 +107,11 @@ func processRecord(index int, record usn.Record, volHandle syscall.Handle, volNa
 		summary.Skipped++
 		return
 	}
-	if record.FileAttributes.Match(fileattr.Directory) {
-		summary.Directories++
+	if !recordFilter.Match(record) {
 		return
 	}
-	if !recordFilter.Match(record) {
+	if record.FileAttributes.Match(fileattr.Directory) {
+		summary.Directories++
 		return
 	}
 
