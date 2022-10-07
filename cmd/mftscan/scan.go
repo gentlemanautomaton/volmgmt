@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sort"
+	"syscall"
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/gentlemanautomaton/volmgmt/fileapi"
 	"github.com/gentlemanautomaton/volmgmt/fileattr"
 	"github.com/gentlemanautomaton/volmgmt/usn"
 	"github.com/gentlemanautomaton/volmgmt/volume"
+	"golang.org/x/sys/windows"
 )
 
 func scan(ctx context.Context, path string, settings Settings) (summary Summary) {
@@ -33,6 +34,7 @@ func scan(ctx context.Context, path string, settings Settings) (summary Summary)
 		fmt.Printf("Unable to determine volume name for \"%s\": %v\n", path, err)
 		return
 	}
+	volHandle := vol.Handle()
 
 	mft := vol.MFT()
 	defer mft.Close()
@@ -88,7 +90,7 @@ func scan(ctx context.Context, path string, settings Settings) (summary Summary)
 				return
 			}
 			go func(i int, record usn.Record) {
-				processRecord(i, record, volName, recordFilter, fileInfoFilter, settings.List, settings.Verbose, &summary)
+				processRecord(i, record, volHandle, volName, recordFilter, fileInfoFilter, settings.List, settings.Verbose, &summary)
 				<-sem
 			}(i, record)
 		}
@@ -100,7 +102,7 @@ func scan(ctx context.Context, path string, settings Settings) (summary Summary)
 	return summary
 }
 
-func processRecord(index int, record usn.Record, volName string, recordFilter usn.Filter, fileInfoFilter FileInfoFilter, list, verbose bool, summary *Summary) {
+func processRecord(index int, record usn.Record, volHandle syscall.Handle, volName string, recordFilter usn.Filter, fileInfoFilter FileInfoFilter, list, verbose bool, summary *Summary) {
 	if record.FileAttributes.Match(fileattr.ReparsePoint) {
 		summary.Skipped++
 		return
@@ -112,27 +114,44 @@ func processRecord(index int, record usn.Record, volName string, recordFilter us
 	if !recordFilter.Match(record) {
 		return
 	}
-	path := filepath.Join(volName, record.Path)
-	fi, err := os.Stat(path)
+
+	const access = uint32(windows.READ_CONTROL)
+	const shareMode = uint32(syscall.FILE_SHARE_READ | syscall.FILE_SHARE_WRITE | syscall.FILE_SHARE_DELETE)
+	fileHandle, err := fileapi.OpenFileByID(volHandle, record.FileReferenceNumber, access, shareMode, syscall.FILE_FLAG_BACKUP_SEMANTICS)
 	if err != nil {
 		if verbose {
-			fmt.Printf("%10d: %s: %v\n", index, record.Path, err)
+			fmt.Printf("%10d: %s: can't open file: %v\n", index, record.Path, err)
 		}
 		summary.Skipped++
 		return
 	}
-	if fi.IsDir() {
+	defer syscall.CloseHandle(fileHandle)
+
+	fileInfo := fileapi.FileInfoForHandle{
+		FileName: record.FileName,
+	}
+	fileInfo.ByHandleFileInformation, err = fileapi.GetFileInformationByHandle(fileHandle)
+	if err != nil {
+		if verbose {
+			fmt.Printf("%10d: %s: can't get file info: %v\n", index, record.Path, err)
+		}
+		summary.Skipped++
 		return
 	}
-	if !fileInfoFilter(fi) {
+
+	if fileInfo.IsDir() {
 		return
 	}
-	size := fi.Size()
+	if !fileInfoFilter(fileInfo) {
+		return
+	}
+	size := fileInfo.Size()
+
 	summary.Files++
 	summary.TotalBytes += size
 	summary.Sizes = append(summary.Sizes, size)
 	if list {
-		fmt.Printf("%10d: %s: %s\n", index, record.Path, humanize.Bytes(uint64(fi.Size())))
+		fmt.Printf("%10d: %s: %s\n", index, record.Path, humanize.Bytes(uint64(fileInfo.Size())))
 	}
 }
 
