@@ -1,16 +1,16 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"regexp"
 	"runtime"
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/gentlemanautomaton/signaler"
 )
 
 func usage(errmsg string) {
@@ -20,14 +20,9 @@ func usage(errmsg string) {
 }
 
 func main() {
-	// Shutdown when we receive a termination signal
-	shutdown := signaler.New().Capture(os.Interrupt, syscall.SIGTERM)
-
-	// Ensure that we cleanup even if we panic
-	defer shutdown.Trigger()
-
-	// Prepare the update channels
-	ctx := shutdown.Context()
+	// Capture shutdown signals
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	var settings Settings
 	{
